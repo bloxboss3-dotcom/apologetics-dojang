@@ -8,19 +8,23 @@ Apologetics training built as a game. Read, drill, spar. Seven sections, thirty 
 
 ## Getting it online
 
-It's already wired. `.github/workflows/deploy.yml` builds the site and publishes
-it to GitHub Pages on every push to `main`, and turns Pages on by itself the
-first time it runs (`configure-pages` with `enablement: true`) — there's no
-**Settings → Pages** step to remember.
+`.github/workflows/deploy.yml` builds the site and publishes it to GitHub Pages
+on every push to `main`. It's already on `main`, so there is exactly one manual
+step left, and it's a one-time one:
 
-So: **merge to `main`, wait ~90 seconds, and the URL above is live.** The
-**Actions** tab shows the build; when it's green the site is up. Every later
-push to `main` rebuilds and redeploys automatically. There is no other deploy
-step.
+**Settings → Pages → Build and deployment → Source: GitHub Actions.**
 
-If the very first run fails on the Pages step, the repo is likely private —
-Pages needs a public repo on the free plan. Make it public
-(**Settings → General → Danger Zone → Change visibility**) and re-run the job.
+That switch can only be thrown by a human. A workflow can't throw it for itself
+— the run's `GITHUB_TOKEN` isn't allowed to create a Pages site, so
+`configure-pages` with `enablement: true` fails with *Resource not accessible by
+integration*. Don't re-add it.
+
+Once Pages is on, re-run the latest **Deploy to GitHub Pages** job from the
+**Actions** tab (or push any commit to `main`). About 90 seconds later the URL
+above is live. Every later push to `main` rebuilds and redeploys automatically.
+There is no other deploy step.
+
+Pages also needs the repo to be public on the free plan. This one is public.
 
 ---
 
