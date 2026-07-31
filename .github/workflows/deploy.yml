@@ -23,11 +23,11 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      # enablement: true turns Pages on for the repo on the first run, so there
-      # is no Settings → Pages step to remember.
+      # Pages must already be on, with Settings -> Pages -> Source: GitHub
+      # Actions. Enabling it from here (enablement: true) does not work: the
+      # workflow's GITHUB_TOKEN cannot create a Pages site and the run fails
+      # with "Resource not accessible by integration".
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
       - run: npm ci
       - run: npm run build
       - uses: actions/upload-pages-artifact@v3
