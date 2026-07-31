@@ -20,6 +20,23 @@ const CSS = `
 .dj .mono { font-family:'JetBrains Mono',monospace; }
 .dj .eyebrow { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
 .dj .wrap { max-width:620px; margin:0 auto; padding:0 18px 24px; }
+/* Full-bleed header band. The negative margins cancel .wrap's 18px gutter and
+   the path screen's 26px top padding so the image reaches all four edges. The
+   overlay ramps to solid --ink at the bottom, so the photograph resolves into
+   the page background instead of ending on a hard line. */
+.dj .hero { position:relative; margin:-26px -18px 16px; height:clamp(120px,32vw,186px); overflow:hidden; }
+.dj .hero img { width:100%; height:100%; object-fit:cover; object-position:center 46%; display:block; }
+/* The edges are masked, not painted over. The page behind is a radial gradient
+   (#16202C down to #0A0D12), so an overlay resolving to a flat colour steps
+   visibly against it wherever the two disagree. Masking makes the photograph
+   itself fall away and lets whatever is actually behind show through, which is
+   seamless by construction at any viewport width.
+   Split across two elements on purpose: one axis each, so this needs no
+   mask-composite support. */
+.dj .hero { -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
+            mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%); }
+.dj .hero img { -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%);
+                mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%); }
 .dj .body { font-size:15px; line-height:1.68; color:#E2DCCD; }
 .dj .muted { color:var(--muted); font-size:13px; line-height:1.6; }
 .dj .lead { font-family:Fraunces,Georgia,serif; font-size:19.5px; line-height:1.5; }
@@ -699,6 +716,10 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
 
   return (
     <div className="wrap fade" style={{ paddingTop: 26 }}>
+      {/* Decorative, so no alt text — the title sits immediately beneath it.
+          Dimensions are declared to reserve the space before it decodes. */}
+      <div className="hero"><img src="./hero.webp" alt="" width="1440" height="480" /></div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className="eyebrow">Apologetics Dojang</span>
         <span className="coin bump" key={prog.coins} style={{ marginLeft: "auto" }}><i />{prog.coins}</span>
