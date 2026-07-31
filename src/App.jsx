@@ -779,7 +779,7 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
       })}
 
       <p className="muted" style={{ marginTop: 34 }}>
-        Scripture from the World English Bible. Chesterton, MacDonald, Pascal, Aquinas and Dostoevsky are public domain; Lewis, Wright, Volf and Koukl are summarised, not quoted.
+        Scripture from the World English Bible. Chesterton, MacDonald, Pascal, Aquinas, Hume and Dostoevsky are public domain and quoted verbatim; Lewis, Wright, Volf, Koukl and Walton are paraphrased with attribution, or quoted only in short attributed phrases.
       </p>
 
       <div className="card" style={{ marginTop: 16 }}>

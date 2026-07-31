@@ -126,16 +126,23 @@ corpus. It is honest about being mechanical, but its thresholds are judgment
 calls — `thin` at 45 words, `engage` at 0.35 — and worth revisiting if it
 starts feeling unfair.
 
-### 2. Reconcile the curriculum gap
+### 2. ~~Reconcile the curriculum gap~~ — closed
 
-`CURRICULUM.md` maps **39** numbered items; `src/data/course.js` ships **36**
-units. Both have 8 bosses, so roughly **3 drill units are designed but not
-built**. Diff the two properly before writing — I inferred this from counts,
-not a title-by-title comparison.
+The title-by-title diff turned up exactly three missing drills, now written:
 
-Note the README claims "nine units that are designed but not yet written" and
-"thirty units". Both numbers are stale; it is 36 built against 39 mapped. Worth
-correcting when the gap closes.
+| id | Unit | Section | Sits between |
+|---|---|---|---|
+| `u29` | The geography of faith (pluralism, Hick) | 4 | `u18` → `b4` |
+| `u30` | Genesis and science (Walton, day-age, framework) | 5 | `u22` → `b5` |
+| `u31` | Hume on miracles (the maxim, Price, Earman) | 6 | `u25` → `b7` |
+
+39 built against 39 mapped. README counts corrected at the same time.
+
+Two things worth knowing if you add more. Inserting a unit mid-array is safe —
+`prog.done` is keyed by unit id, not index, so existing saves keep every clear
+they had; this was tested with a pre-insertion save. And Hume is public domain,
+so `u31` quotes the *Enquiry* verbatim rather than paraphrasing; the on-path
+attribution note and the README were updated to say so.
 
 Adding a unit is a data edit only — `src/data/course.js`, no `App.jsx` changes.
 The README's "Adding a unit" section documents the shape. Every unit needs a

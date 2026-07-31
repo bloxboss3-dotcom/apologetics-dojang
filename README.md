@@ -1,6 +1,6 @@
 # Apologetics Dojang
 
-Apologetics training built as a game. Read, drill, spar. Seven sections, thirty units, a battle system, and a written finisher scored live by Claude.
+Apologetics training built as a game. Read, drill, spar. Seven sections, thirty-nine units, a battle system, and a written finisher that scores what you actually wrote.
 
 **Live:** https://bloxboss3-dotcom.github.io/apologetics-dojang/
 
@@ -114,4 +114,4 @@ Progress lives in `localStorage` under `dojang:save` — real, durable browser s
 
 ## Sources
 
-Scripture is the World English Bible (public domain). Chesterton, MacDonald, Pascal, Aquinas and Dostoevsky are public domain and quoted closely. Lewis, N.T. Wright, Volf, Koukl, Plantinga, Craig and others are summarised, not quoted. `CURRICULUM.md` maps the nine units that are designed but not yet written.
+Scripture is the World English Bible (public domain). Chesterton, MacDonald, Pascal, Aquinas, Hume and Dostoevsky are public domain and quoted verbatim. Living authors — Lewis's estate, N.T. Wright, Volf, Koukl, Plantinga, Craig, Walton — are paraphrased with attribution, or quoted only in short attributed phrases. `CURRICULUM.md` maps all thirty-nine units, and all thirty-nine are now built.
