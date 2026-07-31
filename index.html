@@ -11,6 +11,15 @@
     <link rel="alternate icon" href="./favicon-96.png" sizes="96x96" />
     <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
 
+    <!-- Installable app. apple-mobile-web-app-capable is what makes iOS launch
+         this in its own window from the home screen instead of bouncing into
+         Safari with the address bar; Android reads the manifest instead. -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Dojang" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
     <!-- Link previews. og:image must be absolute — relative paths are ignored by
          every scraper, so this one URL is hardcoded to the Pages site. -->
     <meta property="og:type" content="website" />

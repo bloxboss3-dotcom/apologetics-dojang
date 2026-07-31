@@ -651,6 +651,65 @@ export default function App() {
   );
 }
 
+/* ─────────────── INSTALL ─────────────── */
+
+/* Android and desktop Chrome hand us a real install prompt; iOS never has, and
+   requires the user to go through the Share sheet by hand. So the card shows a
+   button where one exists and the actual instructions where one doesn't, and
+   disappears entirely once the app is already running installed. */
+function InstallCard() {
+  const [prompt, setPrompt] = useState(null);
+  const [installed, setInstalled] = useState(
+    () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true
+  );
+  const [done, setDone] = useState(false);
+
+  useEffect(() => {
+    const onPrompt = (e) => { e.preventDefault(); setPrompt(e); };
+    const onInstalled = () => { setInstalled(true); setPrompt(null); };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  if (installed) return null;
+
+  const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="eyebrow">Put it on your home screen</span>
+      </div>
+      <p className="body" style={{ marginTop: 10, fontSize: 14 }}>
+        Installed, it opens in its own window with no address bar, keeps working with no signal,
+        and keeps the same save as the browser.
+      </p>
+      {prompt ? (
+        <button className="use" style={{ marginTop: 12 }} onClick={async () => {
+          prompt.prompt();
+          try { await prompt.userChoice; } catch (e) {}
+          setPrompt(null); setDone(true);
+        }}>{done ? "check your home screen" : "Install"}</button>
+      ) : iOS ? (
+        <p className="muted" style={{ marginTop: 10 }}>
+          In Safari, tap the Share button at the bottom of the screen, then <b>Add to Home Screen</b>.
+          It has to be Safari — Chrome on iOS can't install it.
+        </p>
+      ) : (
+        <p className="muted" style={{ marginTop: 10 }}>
+          In Chrome or Edge, open the browser menu and choose <b>Install app</b> (sometimes shown as
+          <b> Add to Home screen</b>).
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────── JUDGE SETTINGS ─────────────── */
 
 function JudgePanel() {
@@ -891,6 +950,7 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
         )}
       </div>
 
+      <InstallCard />
       <JudgePanel />
     </div>
   );
