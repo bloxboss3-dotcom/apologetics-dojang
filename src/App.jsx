@@ -1449,6 +1449,24 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
   const [spent, setSpent] = useState({});
   const [misses, setMisses] = useState(0);
   const [windUsed, setWindUsed] = useState(false);
+  /* The header collapses the moment you scroll. At rest you get the whole arena;
+     as soon as you move to read or answer, the fighters and the taunt fold away
+     and only the two bars stay pinned. Without this the sticky header covers the
+     question on any screen short enough to scroll, which is most phones, and
+     tuning its height per device is a losing game.
+
+     This lives up here with the other hooks on purpose. Session returns early
+     for the finish screen, and a hook placed after that return runs on every
+     beat except the last one -- so finishing a unit changed the hook count and
+     took the whole app down with React error #300. */
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   const useItem = (id) => {
     if (!bag[id]) return false;
     setBag((b) => ({ ...b, [id]: b[id] - 1 }));
@@ -1537,19 +1555,6 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
     return <Done unit={unit} xp={xp} coins={coins} clean={misses === 0} cleared={foeHp <= 0}
       heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent)} />;
   }
-
-  /* The header collapses the moment you scroll. At rest you get the whole arena;
-     as soon as you move to read or answer, the fighters and the taunt fold away
-     and only the two bars stay pinned. Without this the sticky header covers the
-     question on any screen short enough to scroll, which is most phones, and
-     tuning its height per device is a losing game. */
-  const [compact, setCompact] = useState(false);
-  useEffect(() => {
-    const onScroll = () => setCompact(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, [i]);
 
   const hpColor = heroHp > 55 ? "var(--good)" : heroHp > 25 ? "var(--gold)" : "var(--bad)";
 
