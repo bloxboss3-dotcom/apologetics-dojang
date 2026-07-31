@@ -227,7 +227,7 @@ const CSS = `
 .dj .fb.ok { background:#0E1D15; border-color:#1F4632; }
 .dj .fb.no { background:#1E100F; border-color:#4A2422; }
 .dj .fb-in { max-width:620px; margin:0 auto; }
-.dj .combo { position:fixed; top:calc(64px + env(safe-area-inset-top)); right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
+.dj .combo { position:absolute; top:calc(100% + 8px); right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
   color:var(--gold); background:#1E1811; border:1px solid #4A3A1C; padding:6px 10px; border-radius:20px;
   animation:comboIn .45s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes comboIn { from{transform:translateY(-16px) scale(.6); opacity:0} to{transform:none; opacity:1} }
@@ -1561,6 +1561,11 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
           off the top of the question below it. One container has no such number
           to get wrong. */}
       <div className={"battlehead" + (compact ? " compact" : "")}>
+      {combo >= 2 && (
+        <div className="combo" key={combo}>
+          {combo} in a row{combo >= (has("focus") ? 2 : 3) ? " · critical" : ""}
+        </div>
+      )}
       <div className="rail"><div className="rail-in">
         <button className="icon-btn" onClick={onQuit}>✕</button>
         <div className="seg">{beats.slice(0, -1).map((_, n) => <i key={n} className={n <= i ? "on" : ""} />)}</div>
