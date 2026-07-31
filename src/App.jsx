@@ -20,12 +20,18 @@ const CSS = `
 .dj .mono { font-family:'JetBrains Mono',monospace; }
 .dj .eyebrow { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
 .dj .wrap { max-width:620px; margin:0 auto; padding:0 18px 24px; }
+/* The app draws under the status bar (apple-mobile-web-app-status-bar-style is
+   black-translucent, which is what makes the installed app look like an app
+   rather than a page). That means every top-anchored thing has to be told
+   where the safe area actually starts, or the first row of buttons ends up
+   under the clock and the notch and cannot be tapped at all. */
+.dj { padding-top:env(safe-area-inset-top); }
 /* Full-bleed header band. The negative margins cancel .wrap's 18px gutter and
    the path screen's 26px top padding so the image reaches all four edges. The
    overlay ramps to solid --ink at the bottom, so the photograph resolves into
    the page background instead of ending on a hard line. */
-.dj .hero { position:relative; margin:-26px -18px 16px; height:clamp(120px,32vw,186px); overflow:hidden; }
-.dj .hero img { width:100%; height:100%; object-fit:cover; object-position:center 46%; display:block; }
+.dj .banner { position:relative; margin:-26px -18px 16px; height:clamp(120px,32vw,186px); overflow:hidden; }
+.dj .banner img { width:100%; height:100%; object-fit:cover; object-position:center 46%; display:block; }
 /* The edges are masked, not painted over. The page behind is a radial gradient
    (#16202C down to #0A0D12), so an overlay resolving to a flat colour steps
    visibly against it wherever the two disagree. Masking makes the photograph
@@ -58,14 +64,14 @@ const CSS = `
   50%      { box-shadow:0 0 0 1px color-mix(in srgb, var(--hue) 75%, transparent),
                         0 0 46px -4px color-mix(in srgb, var(--hue) 62%, transparent); }
 }
-.dj .hero { -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
-            mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%); }
-.dj .hero img { -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%);
-                mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%); }
+.dj .banner { -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
+              mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%); }
+.dj .banner img { -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%);
+                  mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%); }
 .dj .body { font-size:15px; line-height:1.68; color:#E2DCCD; }
 .dj .muted { color:var(--muted); font-size:13px; line-height:1.6; }
 .dj .lead { font-family:Fraunces,Georgia,serif; font-size:19.5px; line-height:1.5; }
-.dj .rail { position:sticky; top:0; z-index:20; background:rgba(10,13,18,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+.dj .rail { position:sticky; top:env(safe-area-inset-top); z-index:20; background:rgba(10,13,18,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
 .dj .rail-in { max-width:620px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; gap:10px; }
 .dj .seg { flex:1; display:flex; gap:3px; }
 .dj .seg > i { flex:1; height:4px; border-radius:2px; background:var(--panel2); position:relative; overflow:hidden; }
@@ -92,7 +98,7 @@ const CSS = `
 @keyframes pulse { 0%,100%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 0 rgba(224,171,73,.5)} 50%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 11px rgba(224,171,73,0)} }
 .dj .ntitle { flex:1; min-width:0; }
 
-.dj .arena { position:sticky; top:41px; z-index:19; background:linear-gradient(180deg,#101822 0%,#0C1119 100%); border-bottom:1px solid var(--line); overflow:hidden; }
+.dj .arena { position:sticky; top:calc(41px + env(safe-area-inset-top)); z-index:19; background:linear-gradient(180deg,#101822 0%,#0C1119 100%); border-bottom:1px solid var(--line); overflow:hidden; }
 .dj .arena.shock { animation:quake .3s; }
 @keyframes quake { 20%{transform:translateX(-4px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(2px)} }
 .dj .arena-in { max-width:620px; margin:0 auto; padding:9px 18px 4px; position:relative; }
@@ -178,7 +184,7 @@ const CSS = `
 .dj .fb.ok { background:#0E1D15; border-color:#1F4632; }
 .dj .fb.no { background:#1E100F; border-color:#4A2422; }
 .dj .fb-in { max-width:620px; margin:0 auto; }
-.dj .combo { position:fixed; top:64px; right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
+.dj .combo { position:fixed; top:calc(64px + env(safe-area-inset-top)); right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
   color:var(--gold); background:#1E1811; border:1px solid #4A3A1C; padding:6px 10px; border-radius:20px;
   animation:comboIn .45s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes comboIn { from{transform:translateY(-16px) scale(.6); opacity:0} to{transform:none; opacity:1} }
@@ -193,7 +199,7 @@ const CSS = `
 .dj .shine { position:relative; overflow:hidden; }
 .dj .shine::after { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent); animation:shine 1.8s ease-in-out infinite; }
 @keyframes shine { to { left:120% } }
-.dj .overlay { position:fixed; inset:0; z-index:40; background:rgba(8,10,14,.93); display:flex; align-items:center; justify-content:center; padding:26px; animation:fade .3s both; }
+.dj .overlay { position:fixed; inset:0; z-index:40; background:rgba(8,10,14,.93); display:flex; align-items:center; justify-content:center; padding:calc(26px + env(safe-area-inset-top)) 26px calc(26px + env(safe-area-inset-bottom)); animation:fade .3s both; }
 /* shop + locker */
 .dj .tabs { display:flex; gap:7px; margin:18px 0 4px; overflow-x:auto; padding-bottom:3px; }
 .dj .tab { flex:0 0 auto; border:1.5px solid var(--line); background:var(--panel); color:var(--muted);
@@ -427,6 +433,13 @@ function Hero({ beltColor, state, look, size = 76 }) {
             <stop offset="100%" stopColor={L.aura.hue} stopOpacity=".55" />
           </radialGradient>
         )}
+        {/* White and black rather than a fixed colour, so one gradient lights
+            all five doboks correctly instead of tinting four of them. */}
+        <linearGradient id={"lit" + uid} x1="0%" y1="0%" x2="100%" y2="55%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity=".15" />
+          <stop offset="48%" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="100%" stopColor="#000000" stopOpacity=".22" />
+        </linearGradient>
       </defs>
       {L.aura.hue && <ellipse cx="38" cy="52" rx="34" ry="40" fill={`url(#au${uid})`} />}
       <ellipse cx="38" cy="88" rx="20" ry="3.5" fill="#000" opacity=".38" />
@@ -438,18 +451,44 @@ function Hero({ beltColor, state, look, size = 76 }) {
         <path d="M64 28 L66 12" stroke="#2A2118" strokeWidth="2.6" strokeLinecap="round" />
       </>)}
 
-      {/* legs */}
-      <path d="M30 60 L26 86 L34 86 L36 62 Z" fill={shade} />
-      <path d="M44 60 L50 86 L42 86 L40 62 Z" fill={body} />
-      {/* torso */}
-      <path d="M26 30 L50 30 L54 62 L22 62 Z" fill={body} />
-      <path d="M38 30 L38 62" stroke={shade} strokeWidth="1.4" />
+      {/* legs, with the far one shaded and both given a foot to stand on */}
+      <path d="M30 60 L26 84 L34 84 L36 62 Z" fill={shade} />
+      <path d="M44 60 L50 84 L42 84 L40 62 Z" fill={body} />
+      <path d="M25 84 h10 a2 2 0 0 1 2 2 v1 h-14 v-1 a2 2 0 0 1 2 -2 Z" fill="#151B24" />
+      <path d="M41 84 h10 a2 2 0 0 1 2 2 v1 h-14 v-1 a2 2 0 0 1 2 -2 Z" fill="#101620" />
+
+      {/* Torso as two wrapped panels rather than one slab with a seam down it.
+          The right panel laps over the left, which is the shape that actually
+          reads as a dobok, and the fold gives the figure a front and a side. */}
+      <path d="M26 30 Q24 31 23 36 L22 62 L38 62 L38 44 Z" fill={body} />
+      <path d="M50 30 Q52 31 53 36 L54 62 L38 62 L38 44 Z" fill={shade} />
+      {/* The opening at the neck, then a collar band down each side of the wrap.
+          A filled triangle here reads as a bib rather than a collar, so only the
+          bands are drawn and the gap between them is left dark. */}
+      <path d="M31.5 29 L38 42 L44.5 29 Q38 27.2 31.5 29 Z" fill="#0E141C" opacity=".72" />
+      <path d="M26 30 L38 43.5 L35.5 46.5 L23.6 32.2 Z" fill={body} />
+      <path d="M50 30 L38 43.5 L40.5 46.5 L52.4 32.2 Z" fill={shade} />
+      <path d="M50 30 L38 43.5" stroke="#000" strokeWidth=".7" opacity=".2" strokeLinecap="round" />
+      {/* One warm light from the upper left, the same direction the rest of the
+          app is lit from, so the figure sits in the same world as the photographs. */}
+      <path d="M26 30 Q24 31 23 36 L22 62 L54 62 L53 36 Q52 31 50 30 Q38 26 26 30 Z" fill={`url(#lit${uid})`} />
+
       {/* belt — earned, never bought */}
       <rect x="21" y="53" width="34" height="7" rx="2" fill={beltColor} />
-      <rect x="34" y="56" width="9" height="14" rx="1.5" fill={beltColor} opacity=".85" />
-      {/* arms */}
-      <path d="M26 33 L10 46 L15 51 L29 41 Z" fill={body} />
-      <path d="M50 33 L68 40 L66 47 L48 43 Z" fill={body} />
+      <rect x="21" y="53" width="34" height="2.4" rx="1.2" fill="#fff" opacity=".16" />
+      <rect x="33" y="55" width="10" height="7" rx="2" fill={beltColor} />
+      <path d="M34 61 L32 74 L36 74 L37 61 Z" fill={beltColor} opacity=".92" />
+      <path d="M42 61 L45 73 L41 73 L40 61 Z" fill={beltColor} opacity=".78" />
+
+      {/* arms, with a cuff and a hand at the end of each */}
+      <path d="M26 33 Q17 38 11 46 L16 51 Q23 44 29 41 Z" fill={body} />
+      <path d="M50 33 Q60 35 68 40 L66 47 Q57 43 48 43 Z" fill={body} />
+      <circle cx="12.5" cy="49.5" r="3.2" fill="#D8B08C" />
+      <circle cx="68.5" cy="44.8" r="3.2" fill="#D8B08C" />
+      {/* Cuffs drawn last, so each one laps over its wrist and the hand reads as
+          coming out of the sleeve rather than floating beside it. */}
+      <path d="M11.8 43.8 L17 48.8 L14.4 51.4 L9.2 46.4 Z" fill={shade} />
+      <path d="M64.6 37.6 L68.4 43.6 L65.2 45.7 L61.4 39.7 Z" fill={shade} />
 
       {/* weapon in front of the hand */}
       {L.weapon.id === "w-book" && (<>
@@ -831,7 +870,7 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
     <div className="wrap fade" style={{ paddingTop: 26 }}>
       {/* Decorative, so no alt text — the title sits immediately beneath it.
           Dimensions are declared to reserve the space before it decodes. */}
-      <div className="hero"><img src="./hero.webp" alt="" width="1440" height="480" /></div>
+      <div className="banner"><img src="./hero.webp" alt="" width="1440" height="480" /></div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span className="eyebrow">Apologetics Dojang</span>
