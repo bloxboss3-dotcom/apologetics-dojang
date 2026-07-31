@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf } from "./data/economy.js";
+import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
+         RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
 
 /* ═══════════════════ SCRIPTURE (World English Bible, public domain) ═══════════════════ */
@@ -39,6 +40,29 @@ const CSS = `
    seamless by construction at any viewport width.
    Split across two elements on purpose: one axis each, so this needs no
    mask-composite support. */
+/* A revealed pull. The rarer the item the more the card does on arrival: a
+   common simply appears, a mythical arrives slowly with a sweep of light across
+   it. The tier colour drives the border and glow through --rr, so adding a tier
+   later needs no new CSS. */
+.dj .pull { display:flex; align-items:center; gap:11px; padding:10px 12px; border-radius:13px;
+  background:var(--panel); border:1.5px solid var(--rr); position:relative; overflow:hidden;
+  animation:pullin .34s cubic-bezier(.2,1.5,.4,1) both; }
+.dj .pull .pullart { flex:none; width:46px; display:flex; justify-content:center; }
+.dj .pull.rare { box-shadow:0 0 18px -6px var(--rr); }
+.dj .pull.legendary { box-shadow:0 0 26px -5px var(--rr); animation-duration:.5s; }
+.dj .pull.mythical { box-shadow:0 0 40px -4px var(--rr); animation-duration:.66s; }
+.dj .pull.legendary::after, .dj .pull.mythical::after {
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(105deg, transparent 35%, rgba(255,255,255,.24) 50%, transparent 65%);
+  transform:translateX(-120%); animation:sheen 1.15s .18s ease-out; }
+.dj .pull.mythical::after { animation-duration:1.5s; animation-iteration-count:2; }
+@keyframes pullin { from { opacity:0; transform:translateY(14px) scale(.94); } to { opacity:1; transform:none; } }
+@keyframes sheen { to { transform:translateX(120%); } }
+@media (prefers-reduced-motion: reduce) {
+  .dj .pull { animation:none; }
+  .dj .pull.legendary::after, .dj .pull.mythical::after { animation:none; opacity:0; }
+}
+
 /* Shop thumbnail. Unlike the hero and the boss portraits this one keeps a hard
    edge, because it sits inside a card that already has one — a tile that faded
    out here would read as a rendering fault rather than as atmosphere. */
@@ -450,6 +474,13 @@ function Hero({ beltColor, state, look, size = 76 }) {
         <rect x="60" y="30" width="14" height="20" rx="2" fill="#E8DFC9" transform="rotate(14 67 40)" />
         <path d="M64 28 L66 12" stroke="#2A2118" strokeWidth="2.6" strokeLinecap="round" />
       </>)}
+      {L.weapon.id === "w-lantern" && (<>
+        <path d="M69 26 L69 33" stroke="#2A2118" strokeWidth="1.6" strokeLinecap="round" />
+        <ellipse cx="69" cy="42" rx="7.5" ry="9" fill="#F2C46A" />
+        <ellipse cx="69" cy="42" rx="7.5" ry="9" fill="none" stroke="#B8892F" strokeWidth="1" />
+        <path d="M62 39 h14 M62 45 h14" stroke="#B8892F" strokeWidth=".9" opacity=".8" />
+        <ellipse cx="69" cy="42" rx="14" ry="16" fill="#F2C46A" opacity=".14" />
+      </>)}
 
       {/* legs, with the far one shaded and both given a foot to stand on */}
       <path d="M30 60 L26 84 L34 84 L36 62 Z" fill={shade} />
@@ -499,10 +530,27 @@ function Hero({ beltColor, state, look, size = 76 }) {
         <path d="M66 44 L74 8" stroke="#C9D2DE" strokeWidth="3" strokeLinecap="round" />
         <rect x="61" y="42" width="12" height="3" rx="1.5" fill="#3A2E1E" transform="rotate(-12 67 43)" />
       </>)}
+      {L.weapon.id === "w-scroll" && (<>
+        <rect x="61" y="39" width="16" height="7" rx="3.5" fill="#E6DCC4" transform="rotate(-12 69 42)" />
+        <rect x="60" y="38.5" width="3.5" height="8" rx="1.6" fill="#8A6236" transform="rotate(-12 69 42)" />
+        <rect x="74.5" y="38.5" width="3.5" height="8" rx="1.6" fill="#8A6236" transform="rotate(-12 69 42)" />
+      </>)}
+      {L.weapon.id === "w-fan" && (<>
+        <path d="M69 47 L58 30 A14 14 0 0 1 76 27 Z" fill="#C9D2DE" />
+        <path d="M69 47 L63 31 M69 47 L69.5 29 M69 47 L75 30" stroke="#6C7686" strokeWidth=".9" />
+        <circle cx="69" cy="46.5" r="2" fill="#3A2E1E" />
+      </>)}
 
       {/* head */}
       {L.head.id === "hd-hood" && <path d="M22 24 Q38 -4 54 24 L54 30 Q38 12 22 30 Z" fill="#0E141C" />}
-      <circle cx="38" cy="20" r="12" fill={L.head.id === "hd-band" ? "#D8B08C" : L.head.id === "hd-oni" ? "#7E2A2A" : "#1B222D"} />
+      {L.head.id === "hd-horns" && (<>
+        <path d="M27 14 Q18 6 20 -1 Q28 3 30 12 Z" fill="#B9C2D0" />
+        <path d="M49 14 Q58 6 56 -1 Q48 3 46 12 Z" fill="#B9C2D0" />
+      </>)}
+      <circle cx="38" cy="20" r="12" fill={
+        L.head.id === "hd-band" || L.head.id === "hd-wrap" || L.head.id === "hd-veil" ? "#D8B08C"
+        : L.head.id === "hd-oni" ? "#7E2A2A"
+        : L.head.id === "hd-horns" ? "#39414E" : "#1B222D"} />
 
       {L.head.id === "hd-mask" && (<>
         <path d="M26 20 A12 12 0 0 1 50 20 L50 15 A12 12 0 0 0 26 15 Z" fill="#111720" />
@@ -519,6 +567,26 @@ function Hero({ beltColor, state, look, size = 76 }) {
       {L.head.id === "hd-hood" && (<>
         <rect x="28" y="18" width="20" height="5" rx="2.5" fill="#E8DFC9" opacity=".55" />
         <circle cx="34" cy="20.5" r="1.5" fill="#E8DFC9" /><circle cx="43" cy="20.5" r="1.5" fill="#E8DFC9" />
+      </>)}
+
+      {L.head.id === "hd-wrap" && (<>
+        <path d="M26 16 Q38 6 50 16 L50 12 Q38 3 26 12 Z" fill="#8E8474" />
+        <rect x="25.5" y="13" width="25" height="4.6" rx="2.3" fill="#A2988A" />
+        <path d="M25.5 15 L17 20 L20 25 L27 19 Z" fill="#8E8474" />
+        <circle cx="34" cy="22" r="1.6" fill="#1B222D" /><circle cx="43" cy="22" r="1.6" fill="#1B222D" />
+      </>)}
+
+      {L.head.id === "hd-veil" && (<>
+        <path d="M26 17 Q38 8 50 17 L50 13 Q38 5 26 13 Z" fill="#2B3446" />
+        <path d="M27 21 Q38 24 49 21 L49 32 Q38 36 27 32 Z" fill="#39445A" opacity=".92" />
+        <circle cx="34" cy="19" r="1.5" fill="#1B222D" /><circle cx="43" cy="19" r="1.5" fill="#1B222D" />
+      </>)}
+
+      {L.head.id === "hd-horns" && (<>
+        <path d="M26 20 A12 12 0 0 1 50 20 L50 16 A12 12 0 0 0 26 16 Z" fill="#5A6373" />
+        <rect x="28" y="18" width="20" height="4.6" rx="2.3" fill="#0E141C" />
+        <circle cx="34" cy="20.3" r="1.4" fill="#F2C46A" /><circle cx="43" cy="20.3" r="1.4" fill="#F2C46A" />
+        <path d="M38 26 L38 30" stroke="#B9C2D0" strokeWidth="1.4" strokeLinecap="round" />
       </>)}
 
       {L.head.id === "hd-oni" && (<>
@@ -597,7 +665,7 @@ const Slash = () => (
 export default function App() {
   const [prog, setProg] = useState({
     xp: 0, done: [], streak: 0, last: null, sound: true,
-    coins: 0, owned: ["gi-white", "hd-mask", "w-none", "a-none"], perks: [], bag: {},
+    coins: 0, owned: [...STARTER_IDS], perks: [], bag: {},
     equipped: { gi: "gi-white", head: "hd-mask", weapon: "w-none", aura: "a-none" },
   });
   const [ready, setReady] = useState(false);
@@ -655,12 +723,24 @@ export default function App() {
     if (after.name !== before.name) setBeltUp(after);
   };
 
+  /* Cosmetics come out of packs now, so buy() only handles the two things still
+     sold outright. Opening resolves the whole pack up front and writes once:
+     the coins spent, the coins duplicates handed back, and everything new. */
+  const openOne = (pack) => {
+    if (prog.coins < pack.price) return null;
+    const results = openPack(pack, prog.owned);
+    const refund = results.reduce((a, x) => a + x.refund, 0);
+    const won = results.filter((x) => !x.dupe).map((x) => x.item.id);
+    save({
+      ...prog,
+      coins: prog.coins - pack.price + refund,
+      owned: [...new Set([...prog.owned, ...won])],
+    });
+    return results;
+  };
+
   const buy = (kind, item, wearSlot) => {
     if (prog.coins < item.price) return;
-    if (kind === "cosmetic") save({
-      ...prog, coins: prog.coins - item.price, owned: [...prog.owned, item.id],
-      equipped: wearSlot ? { ...prog.equipped, [wearSlot]: item.id } : prog.equipped,
-    });
     if (kind === "perk") save({ ...prog, coins: prog.coins - item.price, perks: [...prog.perks, item.id] });
     if (kind === "consumable") save({ ...prog, coins: prog.coins - item.price, bag: { ...prog.bag, [item.id]: (prog.bag[item.id] || 0) + 1 } });
   };
@@ -681,18 +761,148 @@ export default function App() {
         <Science back={() => setScreen("path")} />
       ) : screen === "shop" ? (
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("path")} />
+      ) : screen === "packs" ? (
+        <Packs prog={prog} openOne={openOne} back={() => setScreen("path")} />
       ) : screen === "locker" ? (
-        <Locker prog={prog} belt={belt} equip={equip} buy={buy} back={() => setScreen("path")} />
+        <Locker prog={prog} belt={belt} equip={equip} back={() => setScreen("path")} />
       ) : (
         <Path prog={prog} belt={belt} open={setActive} go={setScreen}
           saveState={saveState} restore={(o) => save({ ...prog, ...o })}
           toggleSound={() => save({ ...prog, sound: !prog.sound })}
           reset={() => save({
             xp: 0, done: [], streak: 0, last: null, sound: prog.sound,
-            coins: 0, owned: ["gi-white", "hd-mask", "w-none", "a-none"], perks: [], bag: {},
+            coins: 0, owned: [...STARTER_IDS], perks: [], bag: {},
             equipped: { gi: "gi-white", head: "hd-mask", weapon: "w-none", aura: "a-none" },
           })} />
       )}
+    </div>
+  );
+}
+
+/* ─────────────── PACKS ─────────────── */
+
+/* Opening a pack. The cards land one at a time rather than all at once,
+   because the wait is the whole point of a reveal, and the rarer the pull the
+   longer it takes to settle and the more it does on arrival. Everything here is
+   presentation: what was actually pulled was decided by openPack before the
+   first card moved, so no animation can change the outcome. */
+function PackOpening({ results, onDone }) {
+  const [shown, setShown] = useState(0);
+  const best = results.reduce((a, x) =>
+    RARITY_ORDER.indexOf(x.rarity) > RARITY_ORDER.indexOf(a) ? x.rarity : a, "common");
+
+  useEffect(() => {
+    if (shown >= results.length) return;
+    const rarity = results[shown].rarity;
+    /* A mythical is worth waiting for; a common should not hold you up. */
+    const pause = rarity === "mythical" ? 900 : rarity === "legendary" ? 640 : rarity === "rare" ? 420 : 300;
+    const t = setTimeout(() => setShown((n) => n + 1), pause);
+    return () => clearTimeout(t);
+  }, [shown, results]);
+
+  const all = shown >= results.length;
+  const refunded = results.reduce((a, x) => a + x.refund, 0);
+
+  return (
+    <div className="overlay" onClick={all ? onDone : undefined}>
+      <div className="wrap" style={{ padding: 0, width: "100%" }}>
+        <div className="eyebrow" style={{ textAlign: "center", color: RARITIES[best].color }}>
+          {all ? "That's the pack" : "Opening…"}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 16 }}>
+          {results.slice(0, shown).map((x, n) => (
+            <div key={n} className={"pull " + x.rarity} style={{ "--rr": RARITIES[x.rarity].color }}>
+              <span className="pullart"><Hero beltColor="#E0E0E0" state="" size={44}
+                look={lookOf({ gi: "gi-white", head: "hd-mask", weapon: "w-none", aura: "a-none", [x.item.slot]: x.item.id })} /></span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span className="eyebrow" style={{ color: RARITIES[x.rarity].color }}>{RARITIES[x.rarity].name}</span>
+                <div style={{ fontWeight: 600, fontSize: 15, marginTop: 2 }}>{x.item.name}</div>
+                <div className="muted" style={{ fontSize: 12 }}>{x.dupe ? "Already yours" : x.item.note}</div>
+              </span>
+              {x.dupe
+                ? <span className="coin" style={{ flex: "none" }}><i />+{x.refund}</span>
+                : <span className="pill" style={{ flex: "none", color: "var(--good)", borderColor: "#2F5C43" }}>new</span>}
+            </div>
+          ))}
+        </div>
+
+        {all && (
+          <div className="fade" style={{ marginTop: 18, textAlign: "center" }}>
+            {refunded > 0 && (
+              <p className="muted" style={{ marginBottom: 12 }}>
+                Duplicates handed back <span className="coin"><i />{refunded}</span>.
+              </p>
+            )}
+            <button className="btn btn-gold" onClick={onDone}>Done</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Packs({ prog, openOne, back }) {
+  const [opening, setOpening] = useState(null);
+  const ownedPool = POOL.filter((it) => prog.owned.includes(it.id)).length;
+
+  return (
+    <div className="wrap fade" style={{ paddingTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="icon-btn" onClick={back}>← path</button>
+        <span className="coin bump" key={prog.coins} style={{ marginLeft: "auto" }}><i />{prog.coins}</span>
+      </div>
+
+      <h1 style={{ fontSize: 27, marginTop: 18 }}>Supply drop</h1>
+      <p className="muted" style={{ marginTop: 8 }}>
+        Packs hold nothing but cloth and ornament. None of it changes a fight, and none of it touches a boss
+        finisher — a written answer is scored on its merits or it's worth nothing. Duplicates hand coins back.
+      </p>
+      <p className="muted" style={{ marginTop: 10 }}>
+        Collected <span className="mono" style={{ color: "var(--gold)" }}>{ownedPool}</span> of{" "}
+        <span className="mono">{POOL.length}</span>.
+      </p>
+
+      {PACKS.map((pk) => {
+        const afford = prog.coins >= pk.price;
+        return (
+          <div key={pk.id} className="card" style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <h3 style={{ fontSize: 17, flex: 1 }}>{pk.name}</h3>
+              <span className="pill">{pk.pulls} {pk.pulls === 1 ? "draw" : "draws"}</span>
+            </div>
+            <p className="body" style={{ marginTop: 8, fontSize: 14 }}>{pk.note}</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+              {RARITY_ORDER.map((r) => (
+                <span key={r} className="pill" style={{ color: RARITIES[r].color, borderColor: "#2A3340" }}>
+                  {RARITIES[r].name} {(pk.odds[r] * 100).toFixed(pk.odds[r] < .01 ? 1 : 0)}%
+                </span>
+              ))}
+            </div>
+            <button className="use" style={{ marginTop: 12, opacity: afford ? 1 : .4 }} disabled={!afford}
+              onClick={() => { const res = openOne(pk); if (res) setOpening(res); }}>
+              Open · <span className="coin"><i />{pk.price}</span>
+            </button>
+          </div>
+        );
+      })}
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="eyebrow">What a duplicate is worth</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+          {RARITY_ORDER.map((r) => (
+            <span key={r} className="pill" style={{ color: RARITIES[r].color, borderColor: "#2A3340" }}>
+              {RARITIES[r].name} <span className="coin" style={{ marginLeft: 4 }}><i />{RARITIES[r].refund}</span>
+            </span>
+          ))}
+        </div>
+        <p className="muted" style={{ marginTop: 10 }}>
+          Odds are printed above because you should be able to see them. They are the real numbers the app rolls
+          against, and nothing here can be bought with real money.
+        </p>
+      </div>
+
+      {opening && <PackOpening results={opening} onDone={() => setOpening(null)} />}
     </div>
   );
 }
@@ -896,7 +1106,8 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
 
       <div className="tabs">
         <button className="tab" onClick={() => go("locker")}>Locker</button>
-        <button className="tab" onClick={() => go("shop")}>Shop{bagCount ? ` · ${bagCount}` : ""}</button>
+        <button className="tab" onClick={() => go("packs")}>Packs</button>
+        <button className="tab" onClick={() => go("shop")}>Kit{bagCount ? ` · ${bagCount}` : ""}</button>
         <button className="tab" onClick={() => go("science")}>How it's built</button>
       </div>
 
@@ -1049,7 +1260,7 @@ function BeltUp({ belt, sound, look, close }) {
   );
 }
 
-function Locker({ prog, belt, equip, buy, back }) {
+function Locker({ prog, belt, equip, back }) {
   const [slot, setSlot] = useState("gi");
   const look = lookOf(prog.equipped);
   const items = COSMETICS[slot];
@@ -1080,22 +1291,23 @@ function Locker({ prog, belt, equip, buy, back }) {
         {items.map((it) => {
           const owned = prog.owned.includes(it.id);
           const on = prog.equipped[slot] === it.id;
-          const locked = !owned && prog.done.length < it.need;
-          const afford = prog.coins >= it.price;
           const preview = lookOf({ ...prog.equipped, [slot]: it.id });
+          const rr = RARITIES[it.r];
           return (
             <button key={it.id}
-              className={"item " + (on ? "on " : owned ? "owned " : "") + (locked ? "locked" : "")}
-              disabled={locked}
-              onClick={() => { if (owned) equip(slot, it.id); else if (afford) buy("cosmetic", it, slot); }}>
+              className={"item " + (on ? "on " : owned ? "owned " : "") + (owned ? "" : "locked")}
+              disabled={!owned}
+              onClick={() => { if (owned) equip(slot, it.id); }}>
               <div className="pv"><Hero beltColor={belt.color} state="" look={preview} size={54} /></div>
-              <div style={{ fontWeight: 600, fontSize: 13.5 }}>{it.name}</div>
-              <div className="muted" style={{ fontSize: 11.5, marginTop: 3, minHeight: 30 }}>{it.note}</div>
+              <div className="eyebrow" style={{ color: rr.color, fontSize: 9.5 }}>{rr.name}</div>
+              <div style={{ fontWeight: 600, fontSize: 13.5, marginTop: 2 }}>{owned ? it.name : "???"}</div>
+              <div className="muted" style={{ fontSize: 11.5, marginTop: 3, minHeight: 30 }}>
+                {owned ? it.note : "Not pulled yet."}
+              </div>
               <div style={{ marginTop: 7 }}>
                 {on ? <span className="pill" style={{ color: "var(--gold)", borderColor: "#4A3A22" }}>worn</span>
                   : owned ? <span className="pill">tap to wear</span>
-                  : locked ? <span className="pill">{it.need} units</span>
-                  : <span className="coin" style={{ opacity: afford ? 1 : .45 }}><i />{it.price}</span>}
+                  : <span className="pill">in packs</span>}
               </div>
             </button>
           );
