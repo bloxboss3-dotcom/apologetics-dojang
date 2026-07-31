@@ -9,7 +9,10 @@ import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge 
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
-.dj *, .dj *::before, .dj *::after { box-sizing:border-box; }
+/* .dj itself, not only its descendants. It is min-height:100vh, so with a
+   content-box the safe-area top padding made the document taller than the
+   screen and every page gained a phantom scroll of exactly the inset. */
+.dj, .dj *, .dj *::before, .dj *::after { box-sizing:border-box; }
 .dj {
   --ink:#0A0D12; --panel:#131922; --panel2:#1A222E; --line:#27313F;
   --paper:#F0EBDE; --muted:#8994A6; --gold:#E0AB49; --good:#57C48A; --bad:#E0716B;
@@ -95,7 +98,23 @@ const CSS = `
 .dj .body { font-size:15px; line-height:1.68; color:#E2DCCD; }
 .dj .muted { color:var(--muted); font-size:13px; line-height:1.6; }
 .dj .lead { font-family:Fraunces,Georgia,serif; font-size:19.5px; line-height:1.5; }
-.dj .rail { position:sticky; top:env(safe-area-inset-top); z-index:20; background:rgba(10,13,18,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
+/* One sticky block for the whole battle header. The strip painted above it
+   covers the status-bar area, so scrolling content never shows through behind
+   the clock on a translucent status bar. */
+/* One sticky block for the whole battle header.
+   It deliberately does NOT add the safe-area inset itself. .dj already pads for
+   the notch, and a sticky element is clamped to its containing block's content
+   box -- so adding the inset here too either double-counts it at rest or fights
+   the clamp. The page padding positions it; sticky only holds it there. */
+.dj .battlehead { position:sticky; top:0; z-index:20; background:var(--ink); }
+/* Collapsed while scrolled: the bars stay, the scenery goes. */
+.dj .battlehead .stage, .dj .battlehead .taunt { transition:height .18s ease, opacity .14s ease, padding .18s ease; }
+.dj .battlehead.compact .stage { height:0; opacity:0; overflow:hidden; }
+.dj .battlehead.compact .taunt { height:0; opacity:0; overflow:hidden; padding-top:0; padding-bottom:0; }
+@media (prefers-reduced-motion: reduce) {
+  .dj .battlehead .stage, .dj .battlehead .taunt { transition:none; }
+}
+.dj .rail { position:relative; z-index:2; background:rgba(10,13,18,.95); backdrop-filter:blur(10px); border-bottom:1px solid var(--line); }
 .dj .rail-in { max-width:620px; margin:0 auto; padding:10px 18px; display:flex; align-items:center; gap:10px; }
 .dj .seg { flex:1; display:flex; gap:3px; }
 .dj .seg > i { flex:1; height:4px; border-radius:2px; background:var(--panel2); position:relative; overflow:hidden; }
@@ -122,16 +141,16 @@ const CSS = `
 @keyframes pulse { 0%,100%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 0 rgba(224,171,73,.5)} 50%{box-shadow:0 4px 0 rgba(0,0,0,.45),0 0 0 11px rgba(224,171,73,0)} }
 .dj .ntitle { flex:1; min-width:0; }
 
-.dj .arena { position:sticky; top:calc(41px + env(safe-area-inset-top)); z-index:19; background:linear-gradient(180deg,#101822 0%,#0C1119 100%); border-bottom:1px solid var(--line); overflow:hidden; }
+.dj .arena { position:relative; z-index:1; background:linear-gradient(180deg,#101822 0%,#0C1119 100%); border-bottom:1px solid var(--line); overflow:hidden; }
 .dj .arena.shock { animation:quake .3s; }
 @keyframes quake { 20%{transform:translateX(-4px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(2px)} }
-.dj .arena-in { max-width:620px; margin:0 auto; padding:9px 18px 4px; position:relative; }
+.dj .arena-in { max-width:620px; margin:0 auto; padding:8px 18px 2px; position:relative; }
 .dj .hpwrap { display:flex; gap:14px; }
 .dj .hp { flex:1; }
 .dj .hp .lbl { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px; }
 .dj .hpbar { height:7px; border-radius:4px; background:#222C39; overflow:hidden; }
 .dj .hpbar > i { display:block; height:100%; border-radius:4px; transition:width .55s cubic-bezier(.2,.9,.3,1); }
-.dj .stage { position:relative; height:96px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 6px; }
+.dj .stage { position:relative; height:clamp(74px,17vh,96px); display:flex; align-items:flex-end; justify-content:space-between; padding:0 6px; }
 .dj .floor { position:absolute; left:0; right:0; bottom:6px; height:1px; background:linear-gradient(90deg,transparent,#33414F,transparent); }
 .dj .fighter { transform-origin:bottom center; }
 .dj .hero { animation:bob 2.6s ease-in-out infinite; }
@@ -152,7 +171,7 @@ const CSS = `
 @keyframes slash { from{opacity:0; transform:scale(.5) rotate(-25deg)} 40%{opacity:1} to{opacity:0; transform:scale(1.5) rotate(14deg)} }
 .dj .dmg { position:absolute; font:700 22px 'JetBrains Mono',monospace; pointer-events:none; animation:rise2 .95s ease-out forwards; text-shadow:0 2px 6px rgba(0,0,0,.7); }
 @keyframes rise2 { 0%{opacity:0; transform:translateY(6px) scale(.7)} 20%{opacity:1; transform:translateY(-6px) scale(1.15)} 100%{opacity:0; transform:translateY(-46px) scale(1)} }
-.dj .taunt { max-width:620px; margin:0 auto; padding:0 18px 10px; }
+.dj .taunt { max-width:620px; margin:0 auto; padding:0 18px 8px; }
 .dj .taunt p { margin:0; font:italic 400 13.5px/1.5 Fraunces,Georgia,serif; color:#B9C2D0; }
 
 .dj .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }
@@ -208,7 +227,7 @@ const CSS = `
 .dj .fb.ok { background:#0E1D15; border-color:#1F4632; }
 .dj .fb.no { background:#1E100F; border-color:#4A2422; }
 .dj .fb-in { max-width:620px; margin:0 auto; }
-.dj .combo { position:fixed; top:calc(64px + env(safe-area-inset-top)); right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
+.dj .combo { position:absolute; top:calc(100% + 8px); right:16px; z-index:18; font:700 13px 'JetBrains Mono',monospace;
   color:var(--gold); background:#1E1811; border:1px solid #4A3A1C; padding:6px 10px; border-radius:20px;
   animation:comboIn .45s cubic-bezier(.2,1.6,.4,1) both; }
 @keyframes comboIn { from{transform:translateY(-16px) scale(.6); opacity:0} to{transform:none; opacity:1} }
@@ -1519,10 +1538,34 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
       heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent)} />;
   }
 
+  /* The header collapses the moment you scroll. At rest you get the whole arena;
+     as soon as you move to read or answer, the fighters and the taunt fold away
+     and only the two bars stay pinned. Without this the sticky header covers the
+     question on any screen short enough to scroll, which is most phones, and
+     tuning its height per device is a losing game. */
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setCompact(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [i]);
+
   const hpColor = heroHp > 55 ? "var(--good)" : heroHp > 25 ? "var(--gold)" : "var(--bad)";
 
   return (
     <>
+      {/* Rail and arena move as one block. They used to be two sticky siblings
+          with the arena's offset hardcoding the rail's height at 41px -- the
+          rail is 47px, so they overlapped by 6px and the arena then sliced 11px
+          off the top of the question below it. One container has no such number
+          to get wrong. */}
+      <div className={"battlehead" + (compact ? " compact" : "")}>
+      {combo >= 2 && (
+        <div className="combo" key={combo}>
+          {combo} in a row{combo >= (has("focus") ? 2 : 3) ? " · critical" : ""}
+        </div>
+      )}
       <div className="rail"><div className="rail-in">
         <button className="icon-btn" onClick={onQuit}>✕</button>
         <div className="seg">{beats.slice(0, -1).map((_, n) => <i key={n} className={n <= i ? "on" : ""} />)}</div>
@@ -1557,6 +1600,7 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
           <div className="taunt"><p>“{taunt}”</p></div>
         </div>
       )}
+      </div>
 
       {down && (
         <div className="overlay"><div style={{ textAlign: "center", maxWidth: 340 }}>

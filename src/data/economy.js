@@ -171,11 +171,6 @@ export const MENTOR_HINTS = {
   defend: "A strong answer says which version of the objection it's answering, concedes the real difficulty by name, and claims no more certainty than the field has.",
 };
 
-/* Cosmetics are no longer bought one at a time — they come out of packs — so
-   there is no price to look up. Kept as a stub returning 0 rather than deleted,
-   because anything still calling it should get a harmless answer instead of a
-   crash. */
-export const priceOf = () => 0;
 export const lookOf = (equipped) => ({
   gi: COSMETICS.gi.find((x) => x.id === equipped.gi) || COSMETICS.gi[0],
   head: COSMETICS.head.find((x) => x.id === equipped.head) || COSMETICS.head[0],
