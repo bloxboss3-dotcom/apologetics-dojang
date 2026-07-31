@@ -138,6 +138,21 @@ const CSS = `
 .dj .chip:active { transform:translateY(2px); box-shadow:none; }
 .dj .chip.used { opacity:.18; pointer-events:none; }
 .dj .chip.pop { animation:pop .22s ease; }
+/* The word being carried. touch-action is set only on placed words, so the
+   page still scrolls from anywhere else on the screen, and only lifts off the
+   page once it is actually picked up. */
+.dj .slot [data-ord] { touch-action:manipulation; }
+.dj .slot.carrying [data-ord] { touch-action:none; }
+.dj .chip.carried { border-color:var(--gold); background:#2A2416; transform:scale(1.08); z-index:2;
+  box-shadow:0 6px 18px -4px rgba(0,0,0,.7), 0 0 0 1px var(--gold); cursor:grabbing; }
+.dj .slot.carrying [data-ord]:not(.carried) { transition:transform .13s ease; opacity:.72; }
+/* The blank chosen to receive the next word. */
+.dj .blankbtn.target { background:#2A2416; border-bottom-color:var(--gold); animation:targetpulse 1.5s ease-in-out infinite; }
+@keyframes targetpulse { 0%,100% { box-shadow:0 2px 0 -1px var(--gold); } 50% { box-shadow:0 4px 10px -2px var(--gold); } }
+@media (prefers-reduced-motion: reduce) {
+  .dj .blankbtn.target { animation:none; box-shadow:0 3px 8px -2px var(--gold); }
+  .dj .slot.carrying [data-ord]:not(.carried) { transition:none; }
+}
 @keyframes pop { 0%{transform:scale(.85)} 60%{transform:scale(1.08)} 100%{transform:scale(1)} }
 .dj .slot { min-height:92px; border:1.5px dashed var(--line); border-radius:14px; padding:13px; background:#0F141B; display:flex; flex-wrap:wrap; gap:7px; align-content:flex-start; }
 .dj .slot.right { border-style:solid; border-color:var(--good); }
@@ -1393,6 +1408,101 @@ function Verse({ v, stage, play, bag, useItem, onResolve, onNext }) {
   const [filled, setFilled] = useState({}); // blank index -> bank position
   const [order, setOrder] = useState([]);   // stage 3 -> ordered bank items
   const [locked, setLocked] = useState(false);
+  const [target, setTarget] = useState(null); // stage 1/2 -> blank to fill next
+  const [dragIdx, setDragIdx] = useState(-1); // stage 3 -> word being carried
+
+  /* Reordering placed words.
+     A tap still removes a word, exactly as before. Holding one picks it up
+     instead, and dragging slides the rest around it, so a single word in the
+     wrong place no longer means clearing everything after it.
+     The hold threshold is what keeps both gestures available: below it the
+     page scrolls normally, which matters because on a phone the slot can be
+     most of the screen and making that area unscrollable would be worse than
+     the problem being fixed. */
+  const slotRef = useRef(null);
+  const gesture = useRef(null);
+  const suppressClick = useRef(false);
+
+  const HOLD_MS = 200;   // long enough not to fire on a tap
+  const SLOP = 10;       // movement before the hold is abandoned as a scroll
+
+  const moveTo = (from, to) => setOrder((o) => {
+    if (from === to || to < 0 || to >= o.length) return o;
+    const next = o.slice();
+    next.splice(to, 0, next.splice(from, 1)[0]);
+    return next;
+  });
+
+  /* Nearest chip centre, rather than strict hit-testing: the words wrap onto
+     several lines and a pointer between two of them should still resolve. */
+  const slotIndexAt = (x, y) => {
+    const host = slotRef.current;
+    if (!host) return -1;
+    let best = -1, bestD = Infinity;
+    for (const el of host.querySelectorAll("[data-ord]")) {
+      const r = el.getBoundingClientRect();
+      const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+      if (d < bestD) { bestD = d; best = Number(el.dataset.ord); }
+    }
+    return best;
+  };
+
+  const endGesture = () => {
+    const g = gesture.current;
+    if (g?.timer) clearTimeout(g.timer);
+    gesture.current = null;
+    setDragIdx(-1);
+  };
+
+  /* Attached once, not per gesture: the move listener has to already be live
+     when the finger goes down, otherwise the first few pixels of a scroll are
+     missed and the hold cannot be abandoned. Everything it needs lives in refs
+     or functional updates, so there is nothing stale to capture. */
+  useEffect(() => {
+    const onMove = (e) => {
+      const g = gesture.current;
+      if (!g || e.pointerId !== g.pid) return;
+      if (!g.dragging) {
+        if (Math.hypot(e.clientX - g.x0, e.clientY - g.y0) > SLOP) endGesture(); // a scroll
+        return;
+      }
+      const to = slotIndexAt(e.clientX, e.clientY);
+      if (to !== -1 && to !== g.idx) { moveTo(g.idx, to); g.idx = to; setDragIdx(to); }
+    };
+    const onUp = (e) => {
+      const g = gesture.current;
+      if (!g || e.pointerId !== g.pid) return;
+      if (g.dragging) suppressClick.current = true; // the drag was the action
+      endGesture();
+    };
+    /* Non-passive, so the page can be stopped from scrolling mid-carry. React's
+       own touch handlers are passive and cannot do this. */
+    const onTouchMove = (e) => { if (gesture.current?.dragging) e.preventDefault(); };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      endGesture();
+    };
+  }, []);
+
+  const startHold = (e, idx) => {
+    if (locked || e.button > 0) return;
+    endGesture();
+    const pid = e.pointerId, x0 = e.clientX, y0 = e.clientY;
+    const timer = setTimeout(() => {
+      if (!gesture.current) return;
+      gesture.current.dragging = true;
+      setDragIdx(idx);
+      play("tap");
+    }, HOLD_MS);
+    gesture.current = { pid, x0, y0, idx, timer, dragging: false };
+  };
 
   const usedPos = stage === 3 ? order.map((o) => o.p) : Object.values(filled);
   const wordAt = (bi) => (filled[bi] !== undefined ? bank[filled[bi]].w : null);
@@ -1417,8 +1527,12 @@ function Verse({ v, stage, play, bag, useItem, onResolve, onNext }) {
     play("tap");
     if (stage === 3) setOrder([...order, item]);
     else {
-      const next = hidden.find((bi) => filled[bi] === undefined);
-      if (next !== undefined) setFilled({ ...filled, [next]: item.p });
+      /* A chosen blank wins over the next empty one, so a word can be put
+         where it belongs instead of only at the front of the queue. */
+      const next = target !== null && filled[target] === undefined
+        ? target
+        : hidden.find((bi) => filled[bi] === undefined);
+      if (next !== undefined) { setFilled({ ...filled, [next]: item.p }); setTarget(null); }
     }
   };
 
@@ -1458,27 +1572,44 @@ function Verse({ v, stage, play, bag, useItem, onResolve, onNext }) {
       <div className="eyebrow">{stage === 1 ? "Cues fading · 1 of 3" : stage === 2 ? "Cues fading · 2 of 3" : "No cues · 3 of 3"}</div>
       <h2 style={{ fontSize: 19, marginTop: 8 }}>{v.ref}</h2>
 
-      <div className={"slot " + (locked ? (ok ? "right" : "wrong") : "")} style={{ marginTop: 16 }}>
+      <div ref={slotRef} className={"slot " + (locked ? (ok ? "right" : "wrong") : "") + (dragIdx !== -1 ? " carrying" : "")} style={{ marginTop: 16 }}>
         {stage === 3
           ? (order.length === 0
-              ? <span className="muted">Rebuild it from memory. Tap a word again to take it back.</span>
+              ? <span className="muted">Rebuild it from memory. Tap a word to take it back, or hold one to drag it into place.</span>
               : order.map((o, n) => (
-                  <button key={o.p} className="chip pop" title="tap to remove"
-                    onClick={() => { if (!locked) { play("tap"); setOrder(order.filter((_, k) => k !== n)); } }}>
+                  <button key={o.p} data-ord={n}
+                    className={"chip pop" + (dragIdx === n ? " carried" : "")}
+                    title="tap to remove \u00b7 hold to move"
+                    onPointerDown={(e) => startHold(e, n)}
+                    onClick={() => {
+                      if (suppressClick.current) { suppressClick.current = false; return; }
+                      if (!locked) { play("tap"); setOrder(order.filter((_, k) => k !== n)); }
+                    }}>
                     {o.w}
                   </button>
                 )))
           : <p className="lead" style={{ margin: 0 }}>
               {all.map((w, i) => hidden.includes(i)
-                ? <button key={i} className="blankbtn"
-                    onClick={() => clearBlank(i)}
-                    title={filled[i] !== undefined ? "tap to clear" : ""}
+                ? <button key={i}
+                    className={"blankbtn" + (target === i && filled[i] === undefined ? " target" : "")}
+                    onClick={() => {
+                      if (locked) return;
+                      if (filled[i] !== undefined) { clearBlank(i); setTarget(i); }
+                      else { play("tap"); setTarget(target === i ? null : i); }
+                    }}
+                    title={filled[i] !== undefined ? "tap to clear" : "tap to fill this one next"}
                     style={{ color: locked ? (wordAt(i) === w ? "var(--good)" : "var(--bad)") : "var(--gold)" }}>
                     {filled[i] !== undefined ? wordAt(i) : "\u2003\u2003"}
                   </button>
                 : <span key={i}> {w} </span>)}
             </p>}
       </div>
+
+      {!locked && stage !== 3 && (
+        <p className="muted" style={{ marginTop: 8 }}>
+          {target !== null ? "Next word goes in the highlighted blank." : "Tap a blank to choose where the next word lands."}
+        </p>
+      )}
 
       {!locked && (stage === 3 ? order.length > 0 : Object.keys(filled).length > 0) && (
         <button className="icon-btn" style={{ marginTop: 10 }} onClick={clearAll}>clear all</button>
