@@ -34,5 +34,31 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- Mount guard. If this file is ever served unbuilt — GitHub Pages set to
+         "Deploy from a branch" publishes the repo root, where the script above
+         is still raw JSX — nothing executes, React never mounts, and a #0A0D12
+         body renders as a black screen with no error in the console. That has
+         cost two sessions already. This turns it into a message that says what
+         to check. In a real build Vite rewrites the script above to compiled
+         JS, #root fills, and this never fires. -->
+    <script>
+      /* Tests the one thing that is unambiguous: a .jsx src surviving into a
+         served page means no build ran. Vite rewrites it to compiled .js, so
+         this cannot false-positive on a real deploy — no timers, no guessing
+         at a slow connection. */
+      (function () {
+        var root = document.getElementById("root");
+        if (!root || !document.querySelector('script[src$=".jsx"]')) return;
+        root.innerHTML =
+          '<div style="font:16px/1.6 system-ui,sans-serif;color:#C9D3E0;max-width:34rem;margin:16vh auto;padding:0 6vw">' +
+          '<p style="font:700 13px/1 ui-monospace,monospace;letter-spacing:.14em;color:#E0AB49">APOLOGETICS DOJANG</p>' +
+          '<h1 style="font-size:23px;margin:14px 0 0">This page was published without being built.</h1>' +
+          '<p style="color:#8A97A8">The app is fine — what is being served is the source, which no browser can run.</p>' +
+          '<p>Fix: repo <b>Settings → Pages → Build and deployment → Source</b>, set it to <b>GitHub Actions</b>. ' +
+          'Then re-run the "Deploy to GitHub Pages" workflow. "Deploy from a branch" publishes this repo unbuilt and lands you here.</p>' +
+          '</div>';
+      })();
+    </script>
   </body>
 </html>

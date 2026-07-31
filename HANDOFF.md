@@ -35,6 +35,19 @@ integration` and takes the whole job down. Pages was turned on by a human in
 Settings → Pages, which is the only way. There is a comment in `deploy.yml`
 saying so; leave it there.
 
+**1b. Pages Source must stay on "GitHub Actions". This is the black screen.**
+If Source is set to **Deploy from a branch**, GitHub runs its own
+`pages-build-deployment` workflow and publishes the repo root *unbuilt* — the
+root `index.html` still points at `/src/main.jsx`, raw JSX, so React never
+mounts and a `#0A0D12` body renders as a black screen with no console error.
+`deploy.yml` still runs and still goes green, so Actions looks healthy while the
+site is dead. This happened after PR #5 and again is the same symptom as trap 2
+from a different cause. Check it by listing workflows: if
+`pages-build-deployment` exists and has recent runs, Source is on branch mode.
+A workflow cannot change this setting — only a human in Settings → Pages.
+`index.html` now carries a mount guard that detects an unbuilt serve and renders
+the fix instead of a black screen, so this at least announces itself now.
+
 **2. Never add a second workflow that deploys to Pages.**
 This already happened. GitHub's Pages UI suggests a "Static HTML" starter
 (`static.yml`) that uploads `path: '.'` — the repo unbuilt. For a Vite app that
@@ -84,44 +97,52 @@ only**.
 
 ## What to do next
 
-### 1. Make the written finisher actually work — the only real functional gap
+### 1. ~~Make the written finisher actually work~~ — done, with a caveat
 
-`src/App.jsx` line ~1400 calls `https://api.anthropic.com/v1/messages` directly
-from the browser with no key. On the live site every submission fails and the
-user sees *"The round didn't come back."* Boss rounds cannot be closed, which
-means the app's whole point — a written answer judged on its merits — is
-missing in production.
+Boss rounds now always close. `src/judge.js` holds the whole scoring layer:
 
-The fix is a small serverless proxy holding the key server-side: a Cloudflare
-Worker, Netlify function, or Vercel function. The browser posts to the proxy,
-the proxy adds `x-api-key` and forwards to Anthropic.
+- **Training-room judge** (default, offline, no key). Scores the *form* of an
+  answer — engagement with the objection's own terms, restraint in a steelman,
+  conceding a difficulty by name, development, overclaiming. It cannot tell
+  whether a claim is true, and it says so everywhere it appears. Don't let
+  anyone quietly restyle it as a real read.
+- **A connected model**, if one is configured on the path screen under "Who
+  scores your writing" — either a proxy URL or a pasted key. This is the
+  intended experience.
 
-**Never put the key in this repo.** It is public, and keys in client code are
-harvested within hours.
+`worker/worker.js` is a ready Cloudflare Worker holding the key server-side,
+with origin allowlisting and a fixed model so a tampered page can't run up the
+bill. `worker/README.md` is the five-minute deploy. **The key still must never
+enter this repo** — it is public.
 
-Two things to fix while you are in there:
+Model id is now `claude-sonnet-5`, set in two places (`src/judge.js` and
+`worker/worker.js`) — update both together. Failures are now distinguished:
+401/403, 429, 404-on-model, 5xx, network, and malformed-JSON each report
+differently, and every one falls through to the offline judge so a boss can
+still be finished.
 
-- **The model id is stale.** It reads `claude-sonnet-4-6`, which is not a
-  current model. Check the current lineup and use a live id — `claude-sonnet-5`
-  is the sensible default for this workload. This will fail outright otherwise,
-  so it must be updated as part of wiring the proxy.
-- **Response parsing is fragile.** It does
-  `JSON.parse(c.slice(c.indexOf("{"), c.lastIndexOf("}") + 1))` and the whole
-  thing sits in one `try/catch` that reports every failure as the same
-  "didn't come back" message. A 401, a rate limit, and a malformed JSON body
-  are indistinguishable to the user. Distinguish them once there is a real
-  backend to return real statuses.
+Caveat: the offline rubric was tuned against six hand-written answers, not a
+corpus. It is honest about being mechanical, but its thresholds are judgment
+calls — `thin` at 45 words, `engage` at 0.35 — and worth revisiting if it
+starts feeling unfair.
 
-### 2. Reconcile the curriculum gap
+### 2. ~~Reconcile the curriculum gap~~ — closed
 
-`CURRICULUM.md` maps **39** numbered items; `src/data/course.js` ships **36**
-units. Both have 8 bosses, so roughly **3 drill units are designed but not
-built**. Diff the two properly before writing — I inferred this from counts,
-not a title-by-title comparison.
+The title-by-title diff turned up exactly three missing drills, now written:
 
-Note the README claims "nine units that are designed but not yet written" and
-"thirty units". Both numbers are stale; it is 36 built against 39 mapped. Worth
-correcting when the gap closes.
+| id | Unit | Section | Sits between |
+|---|---|---|---|
+| `u29` | The geography of faith (pluralism, Hick) | 4 | `u18` → `b4` |
+| `u30` | Genesis and science (Walton, day-age, framework) | 5 | `u22` → `b5` |
+| `u31` | Hume on miracles (the maxim, Price, Earman) | 6 | `u25` → `b7` |
+
+39 built against 39 mapped. README counts corrected at the same time.
+
+Two things worth knowing if you add more. Inserting a unit mid-array is safe —
+`prog.done` is keyed by unit id, not index, so existing saves keep every clear
+they had; this was tested with a pre-insertion save. And Hume is public domain,
+so `u31` quotes the *Enquiry* verbatim rather than paraphrasing; the on-path
+attribution note and the README were updated to say so.
 
 Adding a unit is a data edit only — `src/data/course.js`, no `App.jsx` changes.
 The README's "Adding a unit" section documents the shape. Every unit needs a
