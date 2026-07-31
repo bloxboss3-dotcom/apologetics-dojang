@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf } from "./data/economy.js";
+import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
 
 /* ═══════════════════ SCRIPTURE (World English Bible, public domain) ═══════════════════ */
 /* ═══════════════════ STYLE ═══════════════════ */
@@ -600,6 +601,85 @@ export default function App() {
   );
 }
 
+/* ─────────────── JUDGE SETTINGS ─────────────── */
+
+function JudgePanel() {
+  const [cfg, setCfg] = useState(loadJudge);
+  const [open, setOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const ready = judgeReady(cfg);
+
+  const commit = (next) => {
+    setCfg(next); saveJudge(next);
+    setSaved(true); setTimeout(() => setSaved(false), 1600);
+  };
+
+  return (
+    <div className="card" style={{ marginTop: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="eyebrow">Who scores your writing</span>
+        <span className="pill" style={{
+          marginLeft: "auto",
+          color: ready ? "var(--good)" : "var(--muted)",
+          borderColor: ready ? "#2F5C43" : "var(--line)",
+        }}>{ready ? (cfg.mode === "proxy" ? "endpoint ✓" : "key ✓") : "training room"}</span>
+      </div>
+
+      <p className="body" style={{ marginTop: 10, fontSize: 14 }}>
+        {ready
+          ? "Boss answers go to the judge you connected, which reads what you wrote and scores it on the merits."
+          : "Boss answers are scored offline by the training-room judge. It weighs engagement, restraint, charity and development — the shape of a good answer — but it cannot tell whether a claim is true. Connect a model for a real read."}
+      </p>
+
+      <button className="icon-btn" style={{ marginTop: 12 }} onClick={() => setOpen(!open)}>
+        {open ? "hide" : ready ? "change judge →" : "connect a judge →"}
+      </button>
+
+      {open && (
+        <div className="fade" style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 7 }}>
+            {[["local", "Training room"], ["proxy", "My endpoint"], ["key", "My API key"]].map(([m, label]) => (
+              <button key={m} className={"chip " + (cfg.mode === m ? "used" : "")}
+                onClick={() => commit({ ...cfg, mode: m })}>{label}</button>
+            ))}
+          </div>
+
+          {cfg.mode === "proxy" && (
+            <div style={{ marginTop: 14 }}>
+              <div className="eyebrow">Endpoint URL</div>
+              <textarea value={cfg.url} onChange={(e) => commit({ ...cfg, url: e.target.value })}
+                placeholder="https://your-worker.workers.dev" style={{ minHeight: 60, fontSize: 12, marginTop: 6 }} />
+              <p className="muted" style={{ marginTop: 8 }}>
+                A small proxy that holds the API key server-side and forwards to Anthropic. This is the safe option — nothing secret
+                touches the browser. There's a ready-made Cloudflare Worker in <span className="mono">worker/</span> in the repo,
+                about five minutes to deploy.
+              </p>
+            </div>
+          )}
+
+          {cfg.mode === "key" && (
+            <div style={{ marginTop: 14 }}>
+              <div className="eyebrow">Anthropic API key</div>
+              <textarea value={cfg.key} onChange={(e) => commit({ ...cfg, key: e.target.value })}
+                placeholder="sk-ant-…" style={{ minHeight: 60, fontSize: 12, marginTop: 6 }} />
+              <div className="card" style={{ marginTop: 10, background: "#1A1210", borderColor: "#4A2422" }}>
+                <p className="body" style={{ fontSize: 13.5, color: "#E0A0A0" }}>
+                  Read this first. The key is kept in this browser only — it is never sent anywhere but Anthropic, and never rides
+                  along in a backup code. But it is still a live key sitting in browser storage, and anything that can run script on
+                  this page could read it. Use a key with a spend limit, don't do this on a shared computer, and revoke it if in doubt.
+                  The endpoint option avoids all of this.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {saved && <p className="muted" style={{ marginTop: 10, color: "var(--good)" }}>saved ✓</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────────── PATH ─────────────── */
 
 function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) {
@@ -756,6 +836,8 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
           <button className="icon-btn" style={{ marginTop: 12 }} onClick={() => setConfirm(true)}>reset progress</button>
         )}
       </div>
+
+      <JudgePanel />
     </div>
   );
 }
@@ -1379,31 +1461,24 @@ function Write({ unit, mentor, onFinisher }) {
   const [err, setErr] = useState(null);
   const isSteel = unit.write.mode === "steelman";
 
+  const cfg = loadJudge();
+  const connected = judgeReady(cfg);
+
+  /* The round must always be closeable. A connected judge is tried first and
+     its failure is reported honestly; the offline judge then scores the form
+     so the boss can still be finished. */
   const run = async () => {
     setBusy(true); setErr(null);
-    const prompt = isSteel
-      ? `Coach an apologetics student. Before answering an objection they must state it at full strength.
-Topic: "${unit.t}". A strong version for reference: "${unit.steelman}"
-Their attempt:
-"""${text}"""
-Judge as a thoughtful skeptic would: would that skeptic sign this as their actual objection? Penalise strawmanning, smuggled rebuttals, softening.
-Reply with ONLY JSON, no fences: {"scores":{"Fidelity":1-5,"Force":1-5,"Restraint":1-5},"verdict":"one sentence","strength":"one specific thing right","gap":"the sharpest thing a real skeptic would add"}`
-      : `Role-play a thoughtful, respectful skeptic sparring with an apologetics student. Be fair, never sneering.
-The objection: "${unit.steelman}"
-Their response:
-"""${text}"""
-Assess honestly. Reward accuracy about scholarship and the text, charity toward the objector, and clarity. Penalise bluffing, overclaiming certainty where scholars genuinely disagree, and papering over real difficulty.
-Reply with ONLY JSON, no fences: {"scores":{"Accuracy":1-5,"Charity":1-5,"Clarity":1-5},"verdict":"one sentence","strength":"one specific thing done well","gap":"the single most useful correction","reply":"2-4 sentences of the skeptic's comeback, first person"}`;
-    try {
-      const r = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: "claude-sonnet-4-6", max_tokens: 1000, messages: [{ role: "user", content: prompt }] }),
-      });
-      const d = await r.json();
-      const t = (d.content || []).filter((c) => c.type === "text").map((c) => c.text).join("");
-      const c = t.replace(/```json|```/g, "").trim();
-      setRes(JSON.parse(c.slice(c.indexOf("{"), c.lastIndexOf("}") + 1)));
-    } catch (e) { setErr("The round didn't come back. Send it again."); }
+    if (connected) {
+      try {
+        setRes(await remoteJudge(cfg, buildPrompt(unit, text, isSteel)));
+        setBusy(false);
+        return;
+      } catch (e) {
+        setErr(e.message || "The round didn't come back.");
+      }
+    }
+    setRes(localJudge(unit, text, isSteel));
     setBusy(false);
   };
 
@@ -1411,7 +1486,11 @@ Reply with ONLY JSON, no fences: {"scores":{"Accuracy":1-5,"Charity":1-5,"Clarit
     <div className="fade">
       <div className="eyebrow" style={{ color: "var(--gold)" }}>Finishing blow</div>
       <h2 style={{ fontSize: 20, marginTop: 8, lineHeight: 1.35 }}>{unit.write.prompt}</h2>
-      <p className="muted" style={{ marginTop: 8 }}>Scored live. A strong answer ends it — a vague one leaves it standing.</p>
+      <p className="muted" style={{ marginTop: 8 }}>
+        {connected
+          ? "Scored live by the judge you connected. A strong answer ends it — a vague one leaves it standing."
+          : "Scored by the training-room judge, which reads the shape of an answer rather than its truth. Connect a model on the path screen for a judge that reads what you actually said."}
+      </p>
       {mentor && (
         <div className="card" style={{ marginTop: 14, background: "#1A1610", borderColor: "#4A3A22" }}>
           <div className="eyebrow" style={{ color: "var(--gold)" }}>◈ Second opinion</div>
@@ -1421,9 +1500,20 @@ Reply with ONLY JSON, no fences: {"scores":{"Accuracy":1-5,"Charity":1-5,"Clarit
       {!isSteel && <div className="quote" style={{ marginTop: 16 }}><p className="body">{unit.steelman}</p></div>}
       <textarea style={{ marginTop: 14 }} value={text} onChange={(e) => setText(e.target.value)}
         placeholder={isSteel ? "The strongest version is…" : "Here's how I'd put it…"} />
-      {err && <p className="body" style={{ marginTop: 12, color: "var(--bad)" }}>{err}</p>}
+      {err && (
+        <div className="card" style={{ marginTop: 12, background: "#1A1210", borderColor: "#4A2422" }}>
+          <div className="eyebrow" style={{ color: "var(--bad)" }}>The connected judge didn't answer</div>
+          <p className="body" style={{ marginTop: 6, fontSize: 14 }}>{err}</p>
+          <p className="muted" style={{ marginTop: 8 }}>Scored by the training-room judge instead so the round can still close.</p>
+        </div>
+      )}
       {res && (
         <div className="fade" style={{ marginTop: 18 }}>
+          {res.local && (
+            <div className="eyebrow" style={{ marginBottom: 10 }}>
+              Training-room judge · form only — it weighs engagement, restraint and development, not whether your claims are true
+            </div>
+          )}
           <div style={{ display: "flex", gap: 8 }}>
             {Object.entries(res.scores || {}).map(([k, val]) => (
               <div key={k} style={{ flex: 1, background: "var(--panel2)", borderRadius: 12, padding: "12px 8px", textAlign: "center" }}>
@@ -1446,8 +1536,12 @@ Reply with ONLY JSON, no fences: {"scores":{"Accuracy":1-5,"Charity":1-5,"Clarit
         </div>
       )}
       <div className="dock"><div className="dock-in">
-        {res ? <button className="btn btn-good" onClick={() => onFinisher(res.scores)}>Land it</button>
-          : <button className="btn btn-gold" disabled={busy || text.trim().length < 40} onClick={run}>{busy ? "Winding up…" : "Throw it"}</button>}
+        {res ? (
+          <div style={{ display: "flex", gap: 8 }}>
+            {err && <button className="use" onClick={() => { setRes(null); setErr(null); }}>try again</button>}
+            <button className="btn btn-good" style={{ flex: 1 }} onClick={() => onFinisher(res.scores)}>Land it</button>
+          </div>
+        ) : <button className="btn btn-gold" disabled={busy || text.trim().length < 40} onClick={run}>{busy ? "Winding up…" : "Throw it"}</button>}
       </div></div>
     </div>
   );
