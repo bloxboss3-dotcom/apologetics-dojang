@@ -33,6 +33,24 @@ const CSS = `
    seamless by construction at any viewport width.
    Split across two elements on purpose: one axis each, so this needs no
    mask-composite support. */
+/* Boss portrait. Same principle as .hero: the image is masked so it dissolves
+   into whatever is behind it, rather than sitting on the page as a hard disc.
+   The ring is drawn under the mask so the mask cannot eat it. */
+.dj .foeportrait { position:relative; width:clamp(150px,44vw,192px); aspect-ratio:1; border-radius:50%;
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--hue) 55%, transparent),
+             0 0 34px -6px color-mix(in srgb, var(--hue) 40%, transparent); }
+.dj .foeportrait img { width:100%; height:100%; object-fit:cover; border-radius:50%; display:block;
+  -webkit-mask-image:radial-gradient(circle at 50% 50%, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%);
+  mask-image:radial-gradient(circle at 50% 50%, #000 58%, rgba(0,0,0,.55) 82%, transparent 100%); }
+@media (prefers-reduced-motion: no-preference) {
+  .dj .foeportrait { animation:foebreathe 5.5s ease-in-out infinite; }
+}
+@keyframes foebreathe {
+  0%, 100% { box-shadow:0 0 0 1px color-mix(in srgb, var(--hue) 55%, transparent),
+                        0 0 34px -6px color-mix(in srgb, var(--hue) 40%, transparent); }
+  50%      { box-shadow:0 0 0 1px color-mix(in srgb, var(--hue) 75%, transparent),
+                        0 0 46px -4px color-mix(in srgb, var(--hue) 62%, transparent); }
+}
 .dj .hero { -webkit-mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%);
             mask-image:linear-gradient(90deg, transparent 0%, #000 16%, #000 84%, transparent 100%); }
 .dj .hero img { -webkit-mask-image:linear-gradient(180deg, rgba(0,0,0,.45) 0%, #000 14%, #000 52%, transparent 100%);
@@ -1221,12 +1239,33 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
   );
 }
 
+/* Each boss is an abstraction rather than a creature, so its portrait is an
+   object: a knot, a cracked mask, an empty chair. The image is masked to a
+   circle that fades before the edge, which keeps it from reading as a photo
+   pasted onto the page, and a ring in the foe's own hue ties it to the colour
+   the rest of that section already uses. */
+function FoePortrait({ unit }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <Foe foe={unit.foe} state="" />;
+  return (
+    <div className="foeportrait" style={{ "--hue": unit.foe.hue }}>
+      <img src={`./foe/${unit.id}.webp`} alt="" width="560" height="560"
+        onError={() => setFailed(true)} />
+    </div>
+  );
+}
+
 function Open({ unit, onNext }) {
   return (
     <div className="fade" style={{ paddingTop: 22, textAlign: "center" }}>
       <div className="eyebrow">{unit.sec.title} · {unit.boss ? "boss" : "unit"}</div>
       <h1 style={{ fontSize: 31, marginTop: 12, lineHeight: 1.12 }}>{unit.t}</h1>
-      <div style={{ margin: "16px 0 4px", display: "flex", justifyContent: "center" }}><Foe foe={unit.foe} state="" /></div>
+      {/* Bosses get a portrait on the way in; drills keep the drawn figure.
+          The battle HUD always keeps the SVG, because that one animates on hit,
+          strike and knockdown and a still image cannot. */}
+      <div style={{ margin: "16px 0 4px", display: "flex", justifyContent: "center" }}>
+        {unit.boss ? <FoePortrait unit={unit} /> : <Foe foe={unit.foe} state="" />}
+      </div>
       <div className="mono" style={{ fontSize: 12.5, letterSpacing: ".12em", color: unit.foe.hue }}>{unit.foe.name}</div>
       <p className="lead" style={{ marginTop: 14, fontStyle: "italic", color: "#C3CBD8" }}>“{unit.foe.enter}”</p>
       <p className="muted" style={{ marginTop: 16, maxWidth: 340, margin: "16px auto 0" }}>
