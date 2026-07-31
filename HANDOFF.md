@@ -49,6 +49,21 @@ A workflow cannot change this setting — only a human in Settings → Pages.
 the fix instead of a black screen, so this at least announces itself now.
 
 **2. Never add a second workflow that deploys to Pages.**
+This has now happened **twice** — deleted in PR #5, and back again within the
+hour. It is not carelessness. **Settings → Pages offers a "Static HTML" card
+with a Configure button, and pressing it commits `static.yml` to `main`
+directly.** The card sits directly under the Source dropdown you have to use to
+set Source to GitHub Actions, so the moment you fix trap 1b you are one tap away
+from re-breaking the site. Do not press Configure on that card, for either
+suggested workflow.
+
+Why it wins: `static.yml` uploads `path: '.'` and declares
+`concurrency: group: "pages"` — the same group `deploy.yml` uses. Both runs
+report **success**, so Actions looks entirely healthy while the served site is
+the unbuilt repo. Diagnose it with `git ls-tree -r origin/main --name-only --
+.github/workflows/`; if anything other than `deploy.yml` is listed, that is the
+bug. Do not trust green checks here.
+
 This already happened. GitHub's Pages UI suggests a "Static HTML" starter
 (`static.yml`) that uploads `path: '.'` — the repo unbuilt. For a Vite app that
 publishes source, so the deployed `index.html` still points at
