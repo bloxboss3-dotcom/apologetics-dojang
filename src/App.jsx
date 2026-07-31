@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
+import { grade, blank, buildSession, checkId, verseId, dueCount, sectionStats, isDue } from "./data/review.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
@@ -239,12 +240,22 @@ const CSS = `
 @keyframes flick { 0%,100%{transform:scale(1) rotate(-2deg)} 50%{transform:scale(1.12) rotate(2deg)} }
 .dj .beltbar { height:8px; border-radius:4px; background:var(--panel2); overflow:hidden; }
 .dj .beltbar > i { display:block; height:100%; transition:width .9s cubic-bezier(.2,.9,.3,1); }
+/* Accuracy per section. Deliberately not the same shape as the belt bar: one
+   is how far you have walked, this is how much of it actually stuck. */
+.dj .strbar { flex:none; width:74px; height:6px; border-radius:3px; background:#1A222E; overflow:hidden; }
+.dj .strbar > i { display:block; height:100%; border-radius:3px; transition:width .5s ease; }
 .dj .shine { position:relative; overflow:hidden; }
 .dj .shine::after { content:''; position:absolute; top:0; left:-60%; width:40%; height:100%; background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent); animation:shine 1.8s ease-in-out infinite; }
 @keyframes shine { to { left:120% } }
 .dj .overlay { position:fixed; inset:0; z-index:40; background:rgba(8,10,14,.93); display:flex; align-items:center; justify-content:center; padding:calc(26px + env(safe-area-inset-top)) 26px calc(26px + env(safe-area-inset-bottom)); animation:fade .3s both; }
 /* shop + locker */
-.dj .tabs { display:flex; gap:7px; margin:18px 0 4px; overflow-x:auto; padding-bottom:3px; }
+/* Five tabs no longer fit a phone, so the row scrolls. flex:none keeps them
+   from squashing into each other instead, which is what flex would otherwise
+   do first. The scrollbar is hidden because it is a swipe, not a control. */
+.dj .tabs { display:flex; gap:7px; margin:18px 0 4px; overflow-x:auto; padding-bottom:3px;
+  scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+.dj .tabs::-webkit-scrollbar { display:none; }
+.dj .tabs > .tab { flex:none; }
 .dj .tab { flex:0 0 auto; border:1.5px solid var(--line); background:var(--panel); color:var(--muted);
   border-radius:999px; padding:8px 14px; font:600 13px Inter,sans-serif; cursor:pointer; white-space:nowrap; }
 .dj .tab.on { color:#150F03; background:var(--gold); border-color:var(--gold); }
@@ -450,11 +461,14 @@ function buildBeats(u) {
     (u.verses || []).forEach((vid) => [0, 1, 2, 3].forEach((stage) => b.push({ t: "verse", vid, stage })));
     b.push({ t: "read", kind: "tension" }, { t: "write" });
   } else {
+    /* Each check carries the id its schedule is filed under, so answering it
+       here and answering it in a review session update the same record. */
     u.teach.forEach((_, i) => {
       b.push({ t: "read", kind: "teach", i });
-      if (u.q[i]) b.push({ t: "choice", q: u.q[i] });
+      if (u.q[i]) b.push({ t: "choice", q: u.q[i], qid: checkId(u.id, i) });
     });
-    u.q.slice(u.teach.length).forEach((q) => b.push({ t: "choice", q }));
+    u.q.slice(u.teach.length).forEach((q, k) =>
+      b.push({ t: "choice", q, qid: checkId(u.id, u.teach.length + k) }));
     if (u.v) [0, 1, 2, 3].forEach((stage) => b.push({ t: "verse", vid: u.v, stage }));
   }
   b.push({ t: "done" });
@@ -727,7 +741,7 @@ export default function App() {
   const [beltUp, setBeltUp] = useState(null);
   const [saveState, setSaveState] = useState("checking");
 
-  const finish = (unit, gained, cleared, coins, spent) => {
+  const finish = (unit, gained, cleared, coins, spent, graded) => {
     const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
     const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
     const bag = { ...prog.bag };
@@ -736,6 +750,7 @@ export default function App() {
     save({
       ...prog, xp: prog.xp + gained, coins: prog.coins + coins, bag,
       done: cleared && !prog.done.includes(unit.id) ? [...prog.done, unit.id] : prog.done,
+      srs: { ...(prog.srs || {}), ...(graded || {}) },
       streak, last: today(),
     });
     setActive(null);
@@ -780,6 +795,8 @@ export default function App() {
         <Science back={() => setScreen("path")} />
       ) : screen === "shop" ? (
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("path")} />
+      ) : screen === "sharpen" ? (
+        <Sharpen prog={prog} save={save} back={() => setScreen("path")} />
       ) : screen === "packs" ? (
         <Packs prog={prog} openOne={openOne} back={() => setScreen("path")} />
       ) : screen === "locker" ? (
@@ -794,6 +811,123 @@ export default function App() {
             equipped: { gi: "gi-white", head: "hd-mask", weapon: "w-none", aura: "a-none" },
           })} />
       )}
+    </div>
+  );
+}
+
+/* ─────────────── SHARPEN (spaced review) ─────────────── */
+
+/* A session of things already learned, pulled back at widening intervals and
+   deliberately mixed across sections. This is the mechanism CURRICULUM.md has
+   always described and the app never had: until now a check was asked once,
+   inside its unit, and never returned. */
+function Sharpen({ prog, save, back }) {
+  const [queue] = useState(() => buildSession(prog, 12));
+  const [n, setN] = useState(0);
+  const [sel, setSel] = useState(null);
+  const [locked, setLocked] = useState(false);
+  const results = useRef({});
+  const [tally, setTally] = useState({ right: 0, wrong: 0 });
+
+  if (!queue.length) {
+    return (
+      <div className="wrap fade" style={{ paddingTop: 26 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button className="icon-btn" onClick={back}>← path</button>
+        </div>
+        <h1 style={{ fontSize: 27, marginTop: 18 }}>Nothing to sharpen yet</h1>
+        <p className="muted" style={{ marginTop: 10 }}>
+          Finish a unit first. Everything you're asked in a unit comes back here later — sooner if you
+          missed it, and at widening gaps once you keep getting it right.
+        </p>
+      </div>
+    );
+  }
+
+  const item = queue[n];
+  const done = n >= queue.length;
+
+  if (done) {
+    const total = tally.right + tally.wrong;
+    return (
+      <div className="wrap fade" style={{ paddingTop: 26 }}>
+        <div className="eyebrow">Session over</div>
+        <h1 style={{ fontSize: 29, marginTop: 12 }}>{tally.right} of {total}.</h1>
+        <p className="body" style={{ marginTop: 12 }}>
+          {tally.wrong === 0
+            ? "Clean. Those move to a longer interval — you'll see them again, further out."
+            : `The ${tally.wrong} you missed come back within the hour. The rest move further out.`}
+        </p>
+        <div className="dock"><div className="dock-in">
+          <button className="btn btn-gold" onClick={() => {
+            save({ ...prog, srs: { ...(prog.srs || {}), ...results.current } });
+            back();
+          }}>Bank it</button>
+        </div></div>
+      </div>
+    );
+  }
+
+  const answer = (ok) => {
+    setLocked(true);
+    const base = results.current[item.id] || (prog.srs || {})[item.id] || blank();
+    results.current[item.id] = grade(base, ok);
+    setTally((t) => ok ? { ...t, right: t.right + 1 } : { ...t, wrong: t.wrong + 1 });
+  };
+
+  return (
+    <div className="wrap fade" style={{ paddingTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="icon-btn" onClick={back}>← path</button>
+        <span className="pill" style={{ marginLeft: "auto" }}>{n + 1} / {queue.length}</span>
+      </div>
+
+      <div className="eyebrow" style={{ marginTop: 16, color: item.sec.foe.hue }}>
+        {item.sec.title} · {item.unit.t}
+      </div>
+
+      {item.kind === "check" ? (
+        <>
+          <h2 style={{ fontSize: 20, marginTop: 10, lineHeight: 1.35 }}>{item.q.q}</h2>
+          <div style={{ marginTop: 18 }}>
+            {item.q.a.map((t, k) => (
+              <button key={k}
+                className={"opt " + (locked ? (k === item.q.c ? "right" : k === sel ? "wrong" : "") : sel === k ? "sel" : "")}
+                onClick={() => !locked && setSel(k)}>{t}</button>
+            ))}
+          </div>
+          {locked && <div className="card" style={{ marginTop: 14 }}>
+            <p className="body" style={{ fontSize: 14 }}>{item.q.w}</p></div>}
+        </>
+      ) : (
+        <>
+          <h2 style={{ fontSize: 20, marginTop: 10 }}>{item.verse.ref}</h2>
+          <p className="muted" style={{ marginTop: 8 }}>Say it from memory, then check yourself honestly.</p>
+          {locked && <div className="quote" style={{ marginTop: 16 }}><p className="lead">{item.verse.text}</p></div>}
+        </>
+      )}
+
+      <div className="dock"><div className="dock-in">
+        {!locked ? (
+          item.kind === "check"
+            ? <button className="btn btn-gold" disabled={sel === null}
+                onClick={() => answer(sel === item.q.c)}>Answer</button>
+            : <div style={{ display: "flex", gap: 8 }}>
+                <button className="use" style={{ flex: 1 }} onClick={() => { setLocked(true); }}>Show it</button>
+              </div>
+        ) : item.kind === "verse" && !(item.id in results.current) ? (
+          /* Self-graded, because only you know whether you actually had it. */
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-bad" style={{ flex: 1 }} onClick={() => answer(false)}>Missed it</button>
+            <button className="btn btn-good" style={{ flex: 1 }} onClick={() => answer(true)}>Had it</button>
+          </div>
+        ) : (
+          <button className={"btn " + (item.kind === "check" && sel === item.q.c ? "btn-good" : "btn-gold")}
+            onClick={() => { setN(n + 1); setSel(null); setLocked(false); }}>
+            {n + 1 === queue.length ? "Finish" : "Next"}
+          </button>
+        )}
+      </div></div>
     </div>
   );
 }
@@ -1094,6 +1228,8 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
   const nextId = idx === -1 ? null : ALL_UNITS[idx].id;
   const look = lookOf(prog.equipped);
   const bagCount = Object.values(prog.bag || {}).reduce((a, b) => a + b, 0);
+  const due = dueCount(prog);
+  const stats = sectionStats(prog);
 
   return (
     <div className="wrap fade" style={{ paddingTop: 26 }}>
@@ -1124,6 +1260,9 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
       </div>
 
       <div className="tabs">
+        <button className={"tab" + (due > 0 ? " on" : "")} onClick={() => go("sharpen")}>
+          Sharpen{due > 0 ? ` · ${due}` : ""}
+        </button>
         <button className="tab" onClick={() => go("locker")}>Locker</button>
         <button className="tab" onClick={() => go("packs")}>Packs</button>
         <button className="tab" onClick={() => go("shop")}>Kit{bagCount ? ` · ${bagCount}` : ""}</button>
@@ -1180,6 +1319,42 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
           </div>
         );
       })}
+
+      {stats.length > 0 && (
+        <div className="card" style={{ marginTop: 24 }}>
+          <div className="eyebrow">Where you actually stand</div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            Accuracy across everything you've been asked more than once, not how far you've walked.
+            Anything under 70% is worth another pass.
+          </p>
+          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 9 }}>
+            {stats.map(({ sec, accuracy, due: d, total }) => (
+              <div key={sec.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span className="mono" style={{ fontSize: 10, color: sec.foe.hue, width: 18 }}>
+                  {String(sec.n).padStart(2, "0")}
+                </span>
+                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden",
+                               textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sec.title}</span>
+                <span className="strbar"><i style={{
+                  width: (accuracy === null ? 0 : accuracy * 100) + "%",
+                  background: accuracy === null ? "var(--line)"
+                    : accuracy >= .85 ? "var(--good)" : accuracy >= .7 ? "var(--gold)" : "var(--bad)" }} /></span>
+                <span className="mono" style={{ fontSize: 11, width: 34, textAlign: "right",
+                  color: accuracy === null ? "var(--muted)"
+                    : accuracy >= .85 ? "var(--good)" : accuracy >= .7 ? "var(--gold)" : "var(--bad)" }}>
+                  {accuracy === null ? "—" : Math.round(accuracy * 100) + "%"}
+                </span>
+                {d > 0 && <span className="pill" style={{ flex: "none", fontSize: 10 }}>{d}</span>}
+              </div>
+            ))}
+          </div>
+          {due > 0 && (
+            <button className="use" style={{ marginTop: 14 }} onClick={() => go("sharpen")}>
+              Sharpen {due} waiting →
+            </button>
+          )}
+        </div>
+      )}
 
       <p className="muted" style={{ marginTop: 34 }}>
         Scripture from the World English Bible. Chesterton, MacDonald, Pascal, Aquinas, Hume and Dostoevsky are public domain and quoted verbatim; Lewis, Wright, Volf, Koukl and Walton are paraphrased with attribution, or quoted only in short attributed phrases.
@@ -1492,7 +1667,23 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
     setTimeout(() => setDmg((d) => d.filter((x) => x.id !== id)), 950);
   };
 
+  /* Every graded answer updates that item's schedule. Without this the app
+     asks a thing once and never again, which is what CURRICULUM.md always
+     claimed it did not do. Collected during the round and written once at the
+     end, so a quit mid-unit doesn't half-record a session. */
+  const graded = useRef({});
+  const record = (id, ok) => {
+    if (!id) return;
+    const base = graded.current[id] || (prog.srs || {})[id] || blank();
+    graded.current[id] = grade(base, ok);
+  };
+
   const resolve = (ok) => {
+    /* Only the free-recall stage of a verse is graded. The three cued stages
+       are scaffolding on the way there, not a test of whether it is known. */
+    if (beat.t === "choice") record(beat.qid, ok);
+    else if (beat.t === "verse" && beat.stage === 3) record(verseId(beat.vid), ok);
+
     const stage = document.querySelector(".dj .stage");
     const box = stage ? stage.getBoundingClientRect() : null;
     const fx = box ? { x: box.right - box.width * .28, y: box.top + box.height * .48 } : { x: window.innerWidth * .72, y: 190 };
@@ -1553,7 +1744,7 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
   if (beat.t === "done") {
     const coins = Math.round(xp / 4) + (foeHp <= 0 ? (unit.boss ? 40 : 20) : 0) + (misses === 0 ? 15 : 0);
     return <Done unit={unit} xp={xp} coins={coins} clean={misses === 0} cleared={foeHp <= 0}
-      heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent)} />;
+      heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent, graded.current)} />;
   }
 
   const hpColor = heroHp > 55 ? "var(--good)" : heroHp > 25 ? "var(--gold)" : "var(--bad)";
