@@ -33,6 +33,13 @@ const CSS = `
    seamless by construction at any viewport width.
    Split across two elements on purpose: one axis each, so this needs no
    mask-composite support. */
+/* Shop thumbnail. Unlike the hero and the boss portraits this one keeps a hard
+   edge, because it sits inside a card that already has one — a tile that faded
+   out here would read as a rendering fault rather than as atmosphere. */
+.dj .itemart { flex:none; display:block; border-radius:11px; overflow:hidden;
+  border:1px solid var(--line); background:#0A0D12; }
+.dj .itemart img { width:100%; height:100%; object-fit:cover; display:block; }
+
 /* Boss portrait. Same principle as .hero: the image is masked so it dissolves
    into whatever is behind it, rather than sitting on the page as a hard disc.
    The ring is drawn under the mask so the mask cannot eat it. */
@@ -651,6 +658,20 @@ export default function App() {
   );
 }
 
+/* Shop art. The glyphs stay everywhere they are small — the perk pills on the
+   path screen, the bag counts — because a photograph at 20px is mush, which is
+   the same reason the favicon is vector. The picture only appears where there
+   is room for it to be read, and the glyph is still the fallback if it fails. */
+function ItemArt({ id, icon, size = 66 }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return <span className="mono" style={{ fontSize: 20, color: "var(--gold)" }}>{icon}</span>;
+  return (
+    <span className="itemart" style={{ width: size, height: size }}>
+      <img src={`./item/${id}.webp`} alt="" width="256" height="256" onError={() => setFailed(true)} />
+    </span>
+  );
+}
+
 /* ─────────────── INSTALL ─────────────── */
 
 /* Android and desktop Chrome hand us a real install prompt; iOS never has, and
@@ -1073,8 +1094,8 @@ function Shop({ prog, belt, buy, back }) {
         const afford = prog.coins >= c.price;
         return (
           <div key={c.id} className="card" style={{ marginTop: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="mono" style={{ fontSize: 20, color: "var(--gold)" }}>{c.icon}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <ItemArt id={c.id} icon={c.icon} />
               <h3 style={{ fontSize: 17, flex: 1 }}>{c.name}</h3>
               {have > 0 && <span className="pill" style={{ color: "var(--good)", borderColor: "#2F5C43" }}>×{have}</span>}
             </div>
@@ -1093,8 +1114,8 @@ function Shop({ prog, belt, buy, back }) {
         const afford = prog.coins >= p.price;
         return (
           <div key={p.id} className="card" style={{ marginTop: 12, opacity: locked ? .5 : 1, borderColor: owned ? "#2F5C43" : "var(--line)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span className="mono" style={{ fontSize: 20, color: "var(--gold)" }}>{p.icon}</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <ItemArt id={p.id} icon={p.icon} />
               <h3 style={{ fontSize: 17, flex: 1 }}>{p.name}</h3>
               {owned && <span className="pill" style={{ color: "var(--good)", borderColor: "#2F5C43" }}>active</span>}
             </div>
