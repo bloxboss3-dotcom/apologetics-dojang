@@ -23,13 +23,18 @@ jobs:
         with:
           node-version: 20
           cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Kept after the build on purpose. This step is the one that fails when
+      # Pages is off, and behind the build it fails having already proved the
+      # app compiles. vite.config.js hardcodes base: "./", so nothing here
+      # consumes this step's base_path output and the order is free.
+      #
       # Pages must already be on, with Settings -> Pages -> Source: GitHub
       # Actions. Enabling it from here (enablement: true) does not work: the
       # workflow's GITHUB_TOKEN cannot create a Pages site and the run fails
       # with "Resource not accessible by integration".
       - uses: actions/configure-pages@v5
-      - run: npm ci
-      - run: npm run build
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
