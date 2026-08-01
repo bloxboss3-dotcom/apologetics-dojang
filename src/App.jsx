@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { grade, blank, buildSession, checkId, verseId, dueCount, sectionStats, isDue } from "./data/review.js";
+import { grade, blank, buildSession, dailySession, dailyPlan, checkId, verseId, dueCount, sectionStats, isDue } from "./data/review.js";
+import { drillFor, LEVEL_META } from "./data/corpus.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
@@ -815,6 +816,109 @@ export default function App() {
   );
 }
 
+/* ─────────────── CORPUS DRILL ───────────────
+
+   One screen for every item type at every level, because the drill shape is a
+   property of the question rather than of the thing being asked. drillFor
+   decides which of the three shapes applies; this only renders them.
+
+   The reveal shape is self-graded on purpose. Its answers are paragraphs said
+   out loud, and machine-marking prose against a stored string would punish
+   correct answers for using different words -- worse than trusting the person
+   doing the work. */
+function CorpusDrill({ entry, onAnswer }) {
+  const drill = useMemo(() => drillFor(entry.item, entry.level), [entry]);
+  const [sel, setSel] = useState(null);
+  const [shown, setShown] = useState(false);
+  const [order, setOrder] = useState([]);
+  const [locked, setLocked] = useState(false);
+  const lv = LEVEL_META[entry.level];
+
+  const bank = useMemo(
+    () => (drill.kind === "order"
+      ? shuffle(drill.parts.map((w, p) => ({ w, p }))) : []),
+    [drill]
+  );
+  const orderOk = drill.kind === "order"
+    && order.length === drill.parts.length
+    && order.every((o, k) => drill.parts[k] === o.w);
+
+  const finish = (ok) => { setLocked(true); onAnswer(ok); };
+
+  return (
+    <div className="fade">
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span className="eyebrow" style={{ color: "var(--gold)" }}>{lv.name}</span>
+        <span className="pill" style={{ marginLeft: "auto", fontSize: 10 }}>{entry.item.type}</span>
+      </div>
+      <p className="lead" style={{ marginTop: 12, whiteSpace: "pre-line" }}>{drill.prompt}</p>
+
+      {drill.kind === "mc" && (
+        <div style={{ marginTop: 16 }}>
+          {drill.options.map((t, k) => (
+            <button key={k}
+              className={"opt " + (locked ? (k === drill.answer ? "right" : k === sel ? "wrong" : "") : sel === k ? "sel" : "")}
+              onClick={() => !locked && setSel(k)}>{t}</button>
+          ))}
+        </div>
+      )}
+
+      {drill.kind === "order" && (<>
+        <div className={"slot " + (locked ? (orderOk ? "right" : "wrong") : "")} style={{ marginTop: 14, flexDirection: "column", gap: 6 }}>
+          {order.length === 0
+            ? <span className="muted">Tap the steps in the order they run.</span>
+            : order.map((o, n) => (
+                <button key={o.p} className="chip pop" style={{ textAlign: "left", width: "100%" }}
+                  onClick={() => !locked && setOrder(order.filter((_, k) => k !== n))}>
+                  <span className="mono" style={{ color: "var(--gold)", marginRight: 8 }}>{n + 1}</span>{o.w}
+                </button>
+              ))}
+        </div>
+        {!locked && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
+            {bank.filter((b) => !order.some((o) => o.p === b.p)).map((b) => (
+              <button key={b.p} className="chip" style={{ textAlign: "left" }}
+                onClick={() => setOrder([...order, b])}>{b.w}</button>
+            ))}
+          </div>
+        )}
+      </>)}
+
+      {drill.kind === "reveal" && shown && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <p className="body" style={{ whiteSpace: "pre-line" }}>{drill.answer}</p>
+        </div>
+      )}
+
+      {locked && drill.note && (
+        <div className="card" style={{ marginTop: 12, background: "#1A1610", borderColor: "#4A3A22" }}>
+          <div className="eyebrow" style={{ color: "var(--gold)" }}>Why it matters</div>
+          <p className="body" style={{ marginTop: 7, fontSize: 14, whiteSpace: "pre-line" }}>{drill.note}</p>
+        </div>
+      )}
+
+      <div className="dock"><div className="dock-in">
+        {locked ? null : drill.kind === "mc" ? (
+          <button className="btn btn-gold" disabled={sel === null}
+            onClick={() => finish(sel === drill.answer)}>Answer</button>
+        ) : drill.kind === "order" ? (
+          <button className="btn btn-gold" disabled={order.length !== drill.parts.length}
+            onClick={() => finish(orderOk)}>
+            {order.length === drill.parts.length ? "Check" : `${order.length} of ${drill.parts.length} placed`}
+          </button>
+        ) : !shown ? (
+          <button className="btn btn-gold" onClick={() => setShown(true)}>Show me</button>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-bad" style={{ flex: 1 }} onClick={() => finish(false)}>Missed it</button>
+            <button className="btn btn-good" style={{ flex: 1 }} onClick={() => finish(true)}>Had it</button>
+          </div>
+        )}
+      </div></div>
+    </div>
+  );
+}
+
 /* ─────────────── SHARPEN (spaced review) ─────────────── */
 
 /* A session of things already learned, pulled back at widening intervals and
@@ -822,7 +926,7 @@ export default function App() {
    always described and the app never had: until now a check was asked once,
    inside its unit, and never returned. */
 function Sharpen({ prog, save, back }) {
-  const [queue] = useState(() => buildSession(prog, 12));
+  const [{ items: queue, plan }] = useState(() => dailySession(prog));
   const [n, setN] = useState(0);
   const [sel, setSel] = useState(null);
   const [locked, setLocked] = useState(false);
@@ -882,11 +986,19 @@ function Sharpen({ prog, save, back }) {
         <span className="pill" style={{ marginLeft: "auto" }}>{n + 1} / {queue.length}</span>
       </div>
 
+      {/* Corpus items belong to a section, not a lesson, so there is no unit to
+          name -- reaching for one here took the app down the first time a
+          corpus card came up in a session. */}
       <div className="eyebrow" style={{ marginTop: 16, color: item.sec.foe.hue }}>
-        {item.sec.title} · {item.unit.t}
+        {item.sec.title}{item.unit ? ` · ${item.unit.t}` : ""}
       </div>
 
-      {item.kind === "check" ? (
+      {item.kind === "corpus" ? (
+        <CorpusDrill key={item.id} entry={item} onAnswer={(ok) => {
+          answer(ok);
+          setTimeout(() => { setN(n + 1); setSel(null); setLocked(false); }, 1400);
+        }} />
+      ) : item.kind === "check" ? (
         <>
           <h2 style={{ fontSize: 20, marginTop: 10, lineHeight: 1.35 }}>{item.q.q}</h2>
           <div style={{ marginTop: 18 }}>
@@ -907,7 +1019,7 @@ function Sharpen({ prog, save, back }) {
         </>
       )}
 
-      <div className="dock"><div className="dock-in">
+      {item.kind !== "corpus" && <div className="dock"><div className="dock-in">
         {!locked ? (
           item.kind === "check"
             ? <button className="btn btn-gold" disabled={sel === null}
@@ -927,7 +1039,7 @@ function Sharpen({ prog, save, back }) {
             {n + 1 === queue.length ? "Finish" : "Next"}
           </button>
         )}
-      </div></div>
+      </div></div>}
     </div>
   );
 }
@@ -1228,7 +1340,12 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
   const nextId = idx === -1 ? null : ALL_UNITS[idx].id;
   const look = lookOf(prog.equipped);
   const bagCount = Object.values(prog.bag || {}).reduce((a, b) => a + b, 0);
-  const due = dueCount(prog);
+  /* Today's dose, not the whole backlog. Showing 58 waiting when the throttle
+     will only hand you 8 is a promise the app has no intention of keeping, and
+     the number that matters to someone deciding whether to sit down is how long
+     this will take right now. */
+  const today = dailySession(prog);
+  const due = today.items.length;
   const stats = sectionStats(prog);
 
   return (
@@ -1348,9 +1465,10 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
               </div>
             ))}
           </div>
+          <p className="muted" style={{ marginTop: 12 }}>{today.plan.reason}</p>
           {due > 0 && (
-            <button className="use" style={{ marginTop: 14 }} onClick={() => go("sharpen")}>
-              Sharpen {due} waiting →
+            <button className="use" style={{ marginTop: 12 }} onClick={() => go("sharpen")}>
+              Sharpen {due} today →
             </button>
           )}
         </div>

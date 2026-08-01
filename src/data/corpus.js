@@ -268,3 +268,92 @@ export const cardId = (itemId, level) => `${itemId}#${level}`;
 
 export const allCards = () =>
   CORPUS.flatMap((it) => it.levels.map((lv) => ({ card: cardId(it.id, lv), item: it, level: lv })));
+
+/* ─────────────── turning an item + level into a drill ───────────────
+
+   Three interaction shapes, chosen per type and level:
+
+     mc      auto-graded multiple choice, distractors drawn from sibling items
+             so a wrong answer is always plausible rather than obviously silly
+     order   assemble it from shuffled parts -- the argument reconstruction
+             drill, and the reason the argument type exists
+     reveal  self-graded, for anything whose real answer is a paragraph you
+             said out loud. Machine-marking prose here would be worse than
+             trusting the learner.
+*/
+
+const sample = (arr, n, notId) => {
+  const pool = arr.filter((x) => x.id !== notId);
+  const out = [];
+  for (let i = 0; i < pool.length && out.length < n; i++) {
+    const j = i + Math.floor(Math.random() * (pool.length - i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+    out.push(pool[i]);
+  }
+  return out;
+};
+
+const mc = (prompt, right, wrongs, note) => {
+  const opts = [right, ...wrongs];
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+  }
+  return { kind: "mc", prompt, options: opts, answer: opts.indexOf(right), note };
+};
+
+export function drillFor(item, level) {
+  const A = ARGUMENTS, D = DISTINCTIONS, Q = QUOTES, E = EVIDENCE;
+
+  if (item.type === "argument") {
+    if (level === "recognise")
+      return mc(`Which argument concludes:\n"${item.premises[item.premises.length - 1]}"`,
+        item.name, sample(A, 3, item.id).map((x) => x.name),
+        `It runs in ${item.premises.length} steps. What it delivers: ${item.delivers}`);
+    if (level === "reconstruct")
+      return { kind: "order", prompt: `Rebuild ${item.name}, premises first.`,
+        parts: item.premises, note: `Contested step: “${item.premises[item.contested]}” — ${item.why}` };
+    if (level === "defend")
+      return mc(`In ${item.name}, which step actually carries the weight?`,
+        item.premises[item.contested],
+        item.premises.filter((_, i) => i !== item.contested).slice(0, 3),
+        `${item.why}\n\nThe objection: ${item.objection}\n\nThe reply: ${item.reply}`);
+  }
+
+  if (item.type === "distinction") {
+    if (level === "recognise")
+      return mc(item.body, item.term, sample(D, 3, item.id).map((x) => x.term), item.use);
+    if (level === "recall")
+      return { kind: "reveal", prompt: `State the distinction: ${item.term}`,
+        answer: item.body, note: item.use };
+    if (level === "deploy")
+      return { kind: "reveal", prompt: `When do you reach for “${item.term}”, and what does it do?`,
+        answer: item.use, note: item.body };
+  }
+
+  if (item.type === "quote") {
+    if (level === "recognise")
+      return mc(`“${item.text}”`, item.who, sample(Q, 3, item.id).map((x) => x.who),
+        `${item.work}. ${item.use}`);
+    if (level === "recall")
+      return { kind: "reveal", prompt: `${item.who}, ${item.work} — say it.`,
+        answer: `“${item.text}”`, note: item.use };
+    if (level === "deploy")
+      return { kind: "reveal", prompt: `What is this line FOR?\n\n“${item.text}”`,
+        answer: item.use, note: `${item.who}, ${item.work}` };
+  }
+
+  if (item.type === "evidence") {
+    if (level === "recognise")
+      return mc(item.claim, item.caveat, sample(E, 3, item.id).map((x) => x.caveat),
+        "The caveat travels with the claim. Give the number, then the qualifier, in that order.");
+    if (level === "recall")
+      return { kind: "reveal", prompt: `State the claim and its caveat.\n\n${item.claim.split(" ").slice(0, 6).join(" ")}…`,
+        answer: `${item.claim}\n\n${item.caveat}`, note: "" };
+    if (level === "defend")
+      return { kind: "reveal", prompt: `What is the strongest counter to this, and how do you answer it?\n\n${item.claim}`,
+        answer: item.counter, note: item.caveat };
+  }
+
+  return { kind: "reveal", prompt: item.name || item.term || item.id, answer: "", note: "" };
+}
