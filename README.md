@@ -1,6 +1,6 @@
 # Apologetics Dojang
 
-Apologetics training built as a game. Read, drill, spar. Seven sections, thirty-nine units, a battle system, and a written finisher that scores what you actually wrote.
+Apologetics training built as a game. Read, drill, spar. Seven sections, thirty-nine units, a 1,122-card corpus on a spaced-repetition schedule, a battle system, and a written finisher that scores what you actually wrote.
 
 **Live:** https://bloxboss3-dotcom.github.io/apologetics-dojang/
 
@@ -48,7 +48,15 @@ src/
   main.jsx           mount point — you'll never touch this
   App.jsx            the engine: screens, battle, drills, shop, effects
   data/
-    course.js        ← the curriculum. Almost all edits belong here.
+    course.js        ← the curriculum: sections, units, teach screens, checks, bosses
+    corpus.js        the ladder and the drill generator — machinery, not content
+    corpus.arguments.js     35 arguments, premises ordered, with what each delivers
+    corpus.distinctions.js  85 distinctions, each with when to reach for it
+    corpus.quotes.js        96 quotes, sourced, with what the line is for
+    corpus.objections.js    44 objections at full strength, answered, with the residue
+    corpus.evidence.js      38 figures, each with its caveat and its counter
+    scripture.js     120-verse memory bank (WEB), each with the job it does
+    review.js        SM-2 scheduler, interleaving, the daily-dose throttle, paces
     economy.js       cosmetics, consumables, perks, prices, unlock gates
 index.html
 vite.config.js       base: "./" so Pages works without hardcoding the repo name
@@ -114,4 +122,6 @@ Progress lives in `localStorage` under `dojang:save` — real, durable browser s
 
 ## Sources
 
-Scripture is the World English Bible (public domain). Chesterton, MacDonald, Pascal, Aquinas, Hume and Dostoevsky are public domain and quoted verbatim. Living authors — Lewis's estate, N.T. Wright, Volf, Koukl, Plantinga, Craig, Walton — are paraphrased with attribution, or quoted only in short attributed phrases. `CURRICULUM.md` maps all thirty-nine units, and all thirty-nine are now built.
+Scripture is the World English Bible (public domain). Chesterton, MacDonald, Pascal, Augustine, Aquinas, Anselm, Boethius, Julian of Norwich, Calvin, Luther, Hume, Kant, Nietzsche, Dostoevsky and the rest of the pre-1929 material are public domain and quoted verbatim. Authors still in copyright — Lewis's estate, Nagel, Ehrman, Bonhoeffer, Weil, Wiesel, Volf, Koukl, Plantinga, Craig, Walton — are held to a single attributed sentence each. Where an attribution is traditional rather than located in a text, the entry says `attributed` and the app shows it.
+
+The other side is quoted at full strength and in its own words: Hume, Clifford, Nietzsche, Russell, Dawkins, Nagel, Celsus and Ivan Karamazov are all in the corpus. `CURRICULUM.md` maps all thirty-nine units, and all thirty-nine are built; `DESIGN.md` explains what the corpus is for and what it cost.

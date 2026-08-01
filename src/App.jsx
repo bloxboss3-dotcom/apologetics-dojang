@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { grade, blank, buildSession, dailySession, dailyPlan, checkId, verseId, dueCount, sectionStats, isDue } from "./data/review.js";
+import { grade, blank, buildSession, dailySession, dailyPlan, checkId, verseId, dueCount, sectionStats, isDue, PACES, paceOf, TOTAL_CARDS } from "./data/review.js";
 import { drillFor, LEVEL_META } from "./data/corpus.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
@@ -805,6 +805,7 @@ export default function App() {
       ) : (
         <Path prog={prog} belt={belt} open={setActive} go={setScreen}
           saveState={saveState} restore={(o) => save({ ...prog, ...o })}
+          setPace={(id) => save({ ...prog, pace: id })}
           toggleSound={() => save({ ...prog, sound: !prog.sound })}
           reset={() => save({
             xp: 0, done: [], streak: 0, last: null, sound: prog.sound,
@@ -1016,6 +1017,14 @@ function Sharpen({ prog, save, back }) {
           <h2 style={{ fontSize: 20, marginTop: 10 }}>{item.verse.ref}</h2>
           <p className="muted" style={{ marginTop: 8 }}>Say it from memory, then check yourself honestly.</p>
           {locked && <div className="quote" style={{ marginTop: 16 }}><p className="lead">{item.verse.text}</p></div>}
+          {/* A verse memorised without knowing when to reach for it is a verse
+              you will misuse, and several in the bank are there specifically to
+              be handled carefully. So the job comes with the words. */}
+          {locked && item.verse.use && (
+            <div className="card" style={{ marginTop: 12 }}>
+              <p className="body" style={{ fontSize: 14 }}>{item.verse.use}</p>
+            </div>
+          )}
         </>
       )}
 
@@ -1326,7 +1335,7 @@ function JudgePanel() {
 
 /* ─────────────── PATH ─────────────── */
 
-function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) {
+function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore, setPace }) {
   const next = BELTS.find((b) => b.at > prog.xp);
   const pct = next ? ((prog.xp - belt.at) / (next.at - belt.at)) * 100 : 100;
   const [w, setW] = useState(0);
@@ -1347,6 +1356,12 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
   const today = dailySession(prog);
   const due = today.items.length;
   const stats = sectionStats(prog);
+  const pace = paceOf(prog);
+  /* Two different numbers, and conflating them is a lie in either direction:
+     `openCards` is what the gates will let you be asked today, TOTAL_CARDS is
+     the whole corpus including the ladder levels you have not unlocked. */
+  const openCards = stats.reduce((a, r) => a + r.total, 0);
+  const met = openCards - today.plan.unseen;
 
   return (
     <div className="wrap fade" style={{ paddingTop: 26 }}>
@@ -1471,16 +1486,36 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore }) 
               Sharpen {due} today →
             </button>
           )}
+
+          {/* The corpus is over a thousand cards. How long that takes is the
+              learner's decision, not the app's -- but the throttle is not
+              negotiable at any pace, because it is what makes the size
+              survivable rather than what limits it. */}
+          <div className="eyebrow" style={{ marginTop: 20 }}>Daily pace</div>
+          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+            {PACES.map((p) => (
+              <button key={p.id} className={"use" + (p.id === pace.id ? " on" : "")}
+                style={{ flex: 1, padding: "9px 4px", fontSize: 12,
+                         borderColor: p.id === pace.id ? "var(--gold)" : "var(--line)",
+                         color: p.id === pace.id ? "var(--gold)" : "var(--muted)" }}
+                onClick={() => setPace(p.id)}>{p.name}</button>
+            ))}
+          </div>
+          <p className="muted" style={{ marginTop: 8 }}>
+            {pace.blurb} You've met {met} of the {openCards} cards open to you so far,
+            out of {TOTAL_CARDS} in the whole corpus — the rest unlock as you clear
+            units and climb the ladder on what you already have.
+          </p>
         </div>
       )}
 
       <p className="muted" style={{ marginTop: 34 }}>
-        Scripture from the World English Bible. Chesterton, MacDonald, Pascal, Aquinas, Hume and Dostoevsky are public domain and quoted verbatim; Lewis, Wright, Volf, Koukl and Walton are paraphrased with attribution, or quoted only in short attributed phrases.
+        Scripture from the World English Bible, which is public domain. Chesterton, MacDonald, Pascal, Augustine, Aquinas, Anselm, Hume, Nietzsche and Dostoevsky are public domain and quoted verbatim. Authors still in copyright — Lewis, Nagel, Ehrman, Bonhoeffer, Volf, Walton and the rest — are held to a single attributed sentence each. Where an attribution is traditional rather than sourced, the entry says so.
       </p>
 
       <div className="card" style={{ marginTop: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="eyebrow">Build 8 · {ALL_UNITS.length} units</span>
+          <span className="eyebrow">Build 9 · {ALL_UNITS.length} units · {TOTAL_CARDS} cards</span>
           <span className="pill" style={{
             marginLeft: "auto",
             color: saveState === "ok" ? "var(--good)" : saveState === "off" ? "var(--bad)" : "var(--muted)",

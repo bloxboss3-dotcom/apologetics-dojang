@@ -18,9 +18,12 @@ The site is live and deploying cleanly.
 | Stack | Vite 5 + React 18. No router, no backend, no test suite. |
 | Deploy | `.github/workflows/deploy.yml` on every push to `main` |
 | Pages source | GitHub Actions (enabled by hand — see trap 1) |
-| Content | 7 sections, 36 units (28 drills + 8 bosses), all in `src/data/course.js` |
+| Content | 7 sections, 39 units (31 drills + 8 bosses) in `src/data/course.js` |
+| Corpus | 430 items → **1,122 spaced cards** across `src/data/corpus.*.js` and `src/data/scripture.js` |
 
-Everything works except the written finisher. That's the top item below.
+Everything works. The written finisher closes with or without an API key, and
+the corpus is wired into the spaced scheduler with a three-level ladder per
+item. `DESIGN.md` §8 has the numbers and the two-year carry simulation.
 
 ---
 
@@ -164,7 +167,47 @@ The README's "Adding a unit" section documents the shape. Every unit needs a
 `tension` field naming where its own argument is weakest; that is a deliberate
 design rule, not a formality.
 
-### 3. Finish the art
+### 3. ~~The corpus~~ — built, and here is how it is shaped
+
+The unit is a delivery mechanism; the corpus is the thing you own. Content
+lives in one file per type and `src/data/corpus.js` is only machinery:
+
+| File | Type | Items | Levels drilled |
+|---|---|---|---|
+| `corpus.arguments.js` | argument | 35 | recognise · reconstruct · defend |
+| `corpus.distinctions.js` | distinction | 85 | recognise · recall · deploy |
+| `corpus.quotes.js` | quote | 96 | recognise · recall · deploy |
+| `corpus.objections.js` | objection | 44 | recognise · recall · defend |
+| `corpus.evidence.js` | evidence | 38 | recognise · recall · defend |
+| `scripture.js` | verse | 120 | free recall, self-graded |
+
+Rules that are load-bearing, not stylistic:
+
+- **Every argument has a `delivers` field** saying what you are entitled to
+  claim if it works. The kalam gets you a cause, not Christ. Removing this
+  field would turn the corpus into the overclaiming the course warns about.
+- **Every objection has a `residue`** — where the answer still does not reach.
+  Same reason.
+- **Every evidence item carries its own strongest counter**, and the recognise
+  drill asks for the *caveat*, not the number.
+- **Quotes are sourced or marked `attributed`.** Do not add one you cannot
+  place. Authors in copyright get a single sentence and `pd: false`.
+
+Adding an item is a data edit; `drillFor()` in `corpus.js` turns it into one of
+three shapes automatically. Run the validator before shipping content:
+
+```
+node -e "import('./src/data/corpus.js').then(C=>{for(let i=0;i<60;i++)
+for(const it of C.CORPUS)for(const lv of it.levels){const d=C.drillFor(it,lv);
+if(d.kind==='mc'&&new Set(d.options.map(o=>o.toLowerCase())).size!==d.options.length)
+console.log('DUPLICATE OPTION',it.id,lv)}})"
+```
+
+It runs sixty randomised passes because the distractor bug it exists to catch —
+two quotes by Chesterton putting "G.K. Chesterton" in the option list twice —
+only shows up on some shuffles.
+
+### 4. Finish the art
 
 Two carved-seal images were generated in Runway but never retrieved (see
 Environment constraints). Once network access is **Full**, regenerate and
@@ -176,15 +219,22 @@ a photographic mark is unreadable at 16px. That was tested at 16/24/32/48/128
 before shipping. The current mark is a gold shield holding an open book —
 shield for *apologia*, book for read-before-drill.
 
-### 4. Lower priority
+### 5. Lower priority
 
 - **`npm audit`: 2 advisories** (esbuild/vite). Both are dev-server-only and do
   not affect the deployed static build. The fix is a breaking upgrade to Vite 8,
   so it was deliberately left alone. Do it as its own PR with a real smoke test.
 - **Custom domain**, if wanted. Remember trap 4.
-- **No tests exist.** For a 1,500-line `App.jsx` driving a battle system with
+- **No tests exist.** For a 2,500-line `App.jsx` driving a battle system with
   XP, coins, perks and knockdown math, a few unit tests on the scoring and
-  progression logic would pay for themselves.
+  progression logic would pay for themselves. The scheduler and the corpus are
+  currently checked by throwaway scripts, which is worse than a test file.
+- **`eslint-plugin-react-hooks` is not in the build.** A hooks-after-early-return
+  regression took the app down once (blank page on finishing a unit) and would
+  have been caught statically. Adding the plugin to `deploy.yml` is cheap.
+- **Bundle is ~190 kB gzipped**, most of it corpus prose. Fine for a PWA that
+  caches it once; if it grows much past this, split the corpus behind a dynamic
+  import and keep only what the path screen counts in the main chunk.
 
 ---
 

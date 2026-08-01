@@ -204,3 +204,59 @@ drilled.
   case is weakest. Those are not in tension. They are the same discipline.
 - **Not exhaustive.** A corpus of 500 is not the sum of Christian thought. It is
   what one person can actually carry, which is the only number that matters.
+
+---
+
+## 8. Where it landed
+
+Written after the corpus was built, against the plan above rather than in place
+of it. The plan is left as it was; this is what actually happened.
+
+### The numbers
+
+| | Planned | Built |
+|---|---|---|
+| Arguments | ~40 | **35** |
+| Distinctions | ~80 | **85** |
+| Quotes | ~150 | **96** |
+| Objections | ~60 | **44** |
+| Evidence | ~60 | **38** |
+| Verses | ~120 | **132** (120 in the memory bank + 12 attached to units) |
+| Unit checks | — | 96 |
+| **Items** | ~500 | **430** |
+| **Reviewable cards** | ~2,500 | **1,122** |
+
+Three levels per corpus item rather than five. The five-level ladder is still
+the model and `LEVELS` still names all five, but each type declares the three
+that suit it — an argument is drilled at recognise, reconstruct and defend; a
+quote at recognise, recall and deploy. Levels that would have been busywork for
+a given type were not invented to hit a multiplier.
+
+The quote bank came in under target for one reason: every entry had to be
+sourced. Where an attribution is traditional rather than located in a text, the
+`work` field says "attributed" and the app says so too. That rule removed a
+great many famous sentences that turn out to be nobody's.
+
+### What one person can carry
+
+Simulated against the real scheduler, the real throttle and the real corpus,
+two years of use, 85% accuracy, five days a week:
+
+| Pace | Session | Cards met after 1 yr | after 2 yrs | Peak backlog |
+|---|---|---|---|---|
+| Steady | 12 | 321 | 494 | 53 |
+| Standard | 20 | 505 | 867 | 67 |
+| Hard | 32 | 877 | **1,122 of 1,122** | 116 |
+
+The backlog never runs away at any pace, which is the only thing the throttle
+had to prove. Whether you get through all of it in one year or three is now the
+learner's decision rather than the app's, which is why `PACES` exists.
+
+### One thing the simulation caught
+
+A card missed ten minutes ago is due again — that is the design, a lapse comes
+back inside the session that caused it. But counting it as *backlog* punished
+exactly the person the throttle exists to protect: at 65% accuracy a learner
+generates a dozen relearning cards a sitting, hits the wall on their own
+lapses, and is refused new material indefinitely. Backlog now means work
+carried over from a previous day; today's misses are in progress.
