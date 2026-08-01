@@ -119,8 +119,15 @@ export function reviewPool(prog) {
    interleaving the curriculum promises, applied to the queue rather than left
    to chance. */
 export function buildSession(prog, size = 12, now = Date.now()) {
-  const srs = prog.srs || {};
-  const pool = reviewPool(prog);
+  return orderItems(reviewPool(prog), prog.srs || {}, size, now);
+}
+
+/* The ordering, applied to whatever list it is given. Kept separate from
+   buildSession because the daily plan needs to order the due items and the new
+   items independently -- asking for a mixed session and then filtering it is
+   how the first version of this ended up returning almost nothing, since
+   unseen items outrank everything and were then filtered out. */
+export function orderItems(pool, srs, size, now = Date.now()) {
   if (!pool.length) return [];
 
   const scored = pool.map((r) => {
@@ -185,4 +192,78 @@ export function sectionStats(prog) {
 export function dueCount(prog, now = Date.now()) {
   const srs = prog.srs || {};
   return reviewPool(prog).filter((r) => isDue(srs[r.id], now)).length;
+}
+
+/* ─────────────── THE DAILY DOSE ───────────────
+
+   A corpus of several hundred items is only carryable if you are never asked to
+   face several hundred items. This is the part that makes the size survivable,
+   and it is the same mechanism Duolingo actually runs on: a small daily
+   session, and -- the piece people miss -- new material withheld while you are
+   behind on old material.
+
+   Without the second rule a big corpus collapses in about a week. You meet
+   forty new things on day one, they all come due on day two along with forty
+   more, and by day four the backlog is a wall and you stop. The throttle is not
+   a limitation on the app. It is the thing that makes the app finishable.
+*/
+
+export const DOSE = {
+  session: 20,      // items in one sitting
+  reviewFirst: 14,  // of those, how many are review before any new item is shown
+  newPerDay: 8,     // new items introduced on a good day
+  backlogWall: 40,  // above this many overdue, introduce nothing new at all
+};
+
+export function dailyPlan(prog, now = Date.now()) {
+  const srs = prog.srs || {};
+  const pool = reviewPool(prog);
+  const overdue = pool.filter((r) => srs[r.id] && isDue(srs[r.id], now)).length;
+  const unseen = pool.filter((r) => !srs[r.id] || !srs[r.id].seen).length;
+
+  /* New items are earned by keeping the backlog down. Between zero and the
+     wall the allowance tapers, so it degrades gracefully instead of switching
+     off in one step and feeling like a punishment. */
+  const room = Math.max(0, 1 - overdue / DOSE.backlogWall);
+  const allowNew = overdue >= DOSE.backlogWall ? 0 : Math.round(DOSE.newPerDay * room);
+
+  return {
+    overdue,
+    unseen,
+    newAllowed: Math.min(allowNew, unseen),
+    reviewTarget: Math.min(overdue, DOSE.reviewFirst),
+    blocked: overdue >= DOSE.backlogWall,
+    /* Said in the app, because a learner who is refused new material deserves
+       to know why and what clears it. */
+    reason: overdue >= DOSE.backlogWall
+      ? `${overdue} waiting. Clear some of those and new material opens up again.`
+      : allowNew === 0
+        ? "Caught up. Nothing new today — come back tomorrow."
+        : `${allowNew} new ${allowNew === 1 ? "item" : "items"} today, once the review is done.`,
+  };
+}
+
+/* Review first, then new. Facing the backlog before meeting anything new is
+   what keeps the backlog from growing, and it is the opposite of what feels
+   nice, which is usually the sign it is right. */
+export function dailySession(prog, now = Date.now()) {
+  const plan = dailyPlan(prog, now);
+  const srs = prog.srs || {};
+  const pool = reviewPool(prog);
+  const isSeen = (r) => srs[r.id] && srs[r.id].seen;
+
+  /* Ordered separately, not filtered out of one mixed list. Unseen items
+     outrank everything on priority, so asking for a session and then keeping
+     only the seen ones returns almost nothing -- which is exactly what the
+     first version did, and the year-long simulation caught it before anyone
+     had to live with it. */
+  const due = orderItems(pool.filter((r) => isSeen(r) && isDue(srs[r.id], now)), srs, 999, now);
+  const fresh = orderItems(pool.filter((r) => !isSeen(r)), srs, 999, now);
+
+  const review = due.slice(0, plan.reviewTarget);
+  const brandNew = fresh.slice(0, plan.newAllowed);
+  const room = Math.max(0, DOSE.session - review.length - brandNew.length);
+  const filler = due.slice(review.length, review.length + room);
+
+  return { plan, items: [...review, ...brandNew, ...filler].slice(0, DOSE.session) };
 }
