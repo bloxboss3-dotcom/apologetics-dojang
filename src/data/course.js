@@ -683,6 +683,11 @@ export const SCIENCE = [
   ["Elaborative encoding", "Each objection is anchored to one concrete image \u2014 gold in fire, a fence in a road. Analogy isn't decoration here; it's the retrieval handle."],
   ["Desirable difficulty", "The drills should feel slightly too hard. Conditions that slow you down in practice tend to improve what survives to next week (Bjork)."],
   ["Mastery gating", "Drills alone never clear a section. The boss only goes down to a written answer scoring well on accuracy, charity and clarity \u2014 recognition is not proficiency."],
+  ["Interleaving", "A session deliberately mixes sections and question shapes instead of drilling one thing. Most of this material is discriminative \u2014 telling a genetic fallacy from an ad hominem, the evidential problem of evil from the logical one \u2014 and interleaving helps category learning more than blocking does, even though blocking feels easier while you're doing it."],
+  ["Levels, not a checkbox", "Nothing here is ever \u201cdone\u201d. Every item sits at a level \u2014 recognise, recall, reconstruct, deploy, defend \u2014 and the level moves both ways. Recognising Anselm's argument and being able to rebuild it are different achievements, and each gets its own schedule."],
+  ["Reconstruction over summary", "Arguments are drilled by putting the premises back in order, not by summarising them. Argument mapping and premise-by-premise reconstruction produce some of the largest measured gains in the critical-thinking literature, around 0.8\u20130.9 SD."],
+  ["The throttle", "New material is withheld while you are behind on old material. Without that rule a corpus this size collapses in about a week: you meet forty things on Monday, they all come due Tuesday alongside forty more, and by Thursday the backlog is a wall. The limit is not a restriction on the app \u2014 it is the thing that makes the app finishable."],
+  ["Say the weakness first", "Every argument states what it delivers and no more. Every objection is stored with the place your answer still doesn't reach. That is a learning design choice as much as an ethical one: material you can only hold in its strongest form is material that breaks the first time it's pushed."],
 ];
 
 export const BELTS = [
