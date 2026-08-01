@@ -12,9 +12,8 @@
    twenty-parameter model to a long review history. This course has one learner
    on one device, and even at a thousand cards a first year of use is only a few
    thousand reviews — nowhere near enough to fit twenty parameters without
-   overfitting them. SM-2 is proven, needs no
-   training data, and every number it produces can be explained to the person
-   being scheduled by it. FSRS is the upgrade once there is a history worth
+   overfitting them. SM-2 is proven, needs no training data, and every number it
+   produces can be explained to the person being scheduled by it. FSRS is the upgrade once there is a history worth
    fitting.
 
    ── Why interleaving is weighted as heavily as spacing ──
@@ -27,8 +26,8 @@
    Feeling harder is the point.
    ═══════════════════════════════════════════════ */
 
-import { SECTIONS, ALL_UNITS, VERSES } from "./course.js";
-import { CORPUS, cardId, LEVEL_META } from "./corpus.js";
+import { SECTIONS, VERSES } from "./course.js";
+import { CORPUS, cardId } from "./corpus.js";
 import { MEMORY_VERSES } from "./scripture.js";
 
 export const DAY = 86400000;

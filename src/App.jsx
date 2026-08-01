@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { grade, blank, buildSession, dailySession, dailyPlan, checkId, verseId, dueCount, sectionStats, isDue, PACES, paceOf, TOTAL_CARDS } from "./data/review.js";
+import { grade, blank, dailySession, checkId, verseId, sectionStats, PACES, paceOf, TOTAL_CARDS } from "./data/review.js";
 import { drillFor, LEVEL_META } from "./data/corpus.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
@@ -963,6 +963,17 @@ function Sharpen({ prog, save, back }) {
             ? "Clean. Those move to a longer interval — you'll see them again, further out."
             : `The ${tally.wrong} you missed come back within the hour. The rest move further out.`}
         </p>
+        {/* What today's session was made of, said after the fact rather than
+            before. Told up front it reads as a quota; told here it explains why
+            the session was the length it was. */}
+        <p className="muted" style={{ marginTop: 10 }}>
+          {plan.newAllowed > 0
+            ? `${plan.newAllowed} of those were new. `
+            : "Nothing new today — everything here you had met before. "}
+          {plan.overdue > 0
+            ? `${plan.overdue} still carried over from earlier days.`
+            : "Nothing carried over."}
+        </p>
         <div className="dock"><div className="dock-in">
           <button className="btn btn-gold" onClick={() => {
             save({ ...prog, srs: { ...(prog.srs || {}), ...results.current } });
@@ -1795,7 +1806,7 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const useItem = (id) => {
+  const spendItem = (id) => {
     if (!bag[id]) return false;
     setBag((b) => ({ ...b, [id]: b[id] - 1 }));
     setSpent((s) => ({ ...s, [id]: (s[id] || 0) + 1 }));
@@ -1961,7 +1972,7 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
           <button className="btn btn-gold" style={{ marginTop: 22 }} onClick={() => { setHeroHp(45); setDown(false); }}>Back on my feet</button>
           {bag.wind > 0 && !windUsed && (
             <button className="use" style={{ marginTop: 10 }}
-              onClick={() => { if (useItem("wind")) { setWindUsed(true); setHeroHp(100); setDown(false); } }}>
+              onClick={() => { if (spendItem("wind")) { setWindUsed(true); setHeroHp(100); setDown(false); } }}>
               ▲ Second wind · full composure <span className="pill" style={{ marginLeft: 6 }}>×{bag.wind}</span>
             </button>
           )}
@@ -1971,8 +1982,8 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
       <div className="wrap" style={{ paddingTop: 22 }}>
         {beat.t === "open" && <Open unit={unit} onNext={() => advance()} />}
         {beat.t === "read" && <Read unit={unit} beat={beat} onNext={() => advance(3)} />}
-        {beat.t === "choice" && <Choice key={i} check={beat.q} bag={bag} useItem={useItem} onResolve={resolve} onNext={(ok) => advance(ok ? 12 : 3)} />}
-        {beat.t === "verse" && <Verse key={i} v={VERSES[beat.vid]} stage={beat.stage} play={play} bag={bag} useItem={useItem} onResolve={resolve} onNext={(ok) => advance(ok ? 14 : 4)} />}
+        {beat.t === "choice" && <Choice key={i} check={beat.q} bag={bag} spendItem={spendItem} onResolve={resolve} onNext={(ok) => advance(ok ? 12 : 3)} />}
+        {beat.t === "verse" && <Verse key={i} v={VERSES[beat.vid]} stage={beat.stage} play={play} bag={bag} spendItem={spendItem} onResolve={resolve} onNext={(ok) => advance(ok ? 14 : 4)} />}
         {beat.t === "write" && <Write unit={unit} mentor={has("mentor")} onFinisher={finisher} />}
       </div>
     </>
@@ -2070,7 +2081,7 @@ function Read({ unit, beat, onNext }) {
   );
 }
 
-function Choice({ check, bag, useItem, onResolve, onNext }) {
+function Choice({ check, bag, spendItem, onResolve, onNext }) {
   const [sel, setSel] = useState(null);
   const [locked, setLocked] = useState(false);
   const [gone, setGone] = useState([]);
@@ -2080,7 +2091,7 @@ function Choice({ check, bag, useItem, onResolve, onNext }) {
   };
   const insight = () => {
     const wrong = check.a.map((_, n) => n).filter((n) => n !== check.c && !gone.includes(n));
-    if (!wrong.length || !useItem("insight")) return;
+    if (!wrong.length || !spendItem("insight")) return;
     setGone([...gone, wrong[Math.floor(Math.random() * wrong.length)]]);
   };
   return (
@@ -2113,7 +2124,7 @@ function Choice({ check, bag, useItem, onResolve, onNext }) {
   );
 }
 
-function Verse({ v, stage, play, bag, useItem, onResolve, onNext }) {
+function Verse({ v, stage, play, bag, spendItem, onResolve, onNext }) {
   const all = useMemo(() => wordsOf(v.text), [v]);
   const hidden = useMemo(() => {
     if (stage === 0) return [];
@@ -2275,13 +2286,13 @@ function Verse({ v, stage, play, bag, useItem, onResolve, onNext }) {
     if (stage === 3) {
       const wanted = all[order.length];
       const item = bank.find((b) => b.w === wanted && !usedPos.includes(b.p));
-      if (!item || !useItem("lamp")) return;
+      if (!item || !spendItem("lamp")) return;
       setOrder([...order, item]);
     } else {
       const target = hidden.find((bi) => filled[bi] === undefined);
       if (target === undefined) return;
       const item = bank.find((b) => b.i === target);
-      if (!item || !useItem("lamp")) return;
+      if (!item || !spendItem("lamp")) return;
       setFilled({ ...filled, [target]: item.p });
     }
   };
