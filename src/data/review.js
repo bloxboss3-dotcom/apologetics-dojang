@@ -9,9 +9,10 @@
    ── Why SM-2 and not FSRS ──
    FSRS predicts recall better — it is the default in Anki since 2023 and beats
    SM-2 for almost every user in the open benchmark. It does that by fitting a
-   twenty-parameter model to a long review history. This course has around 120
-   reviewable items and one learner on one device, which is nowhere near enough
-   history to fit anything without overfitting it. SM-2 is proven, needs no
+   twenty-parameter model to a long review history. This course has one learner
+   on one device, and even at a thousand cards a first year of use is only a few
+   thousand reviews — nowhere near enough to fit twenty parameters without
+   overfitting them. SM-2 is proven, needs no
    training data, and every number it produces can be explained to the person
    being scheduled by it. FSRS is the upgrade once there is a history worth
    fitting.
@@ -28,6 +29,7 @@
 
 import { SECTIONS, ALL_UNITS, VERSES } from "./course.js";
 import { CORPUS, cardId, LEVEL_META } from "./corpus.js";
+import { MEMORY_VERSES } from "./scripture.js";
 
 export const DAY = 86400000;
 
@@ -68,6 +70,15 @@ export function allReviewables() {
     it.levels.forEach((level, tier) => {
       add({ kind: "corpus", id: cardId(it.id, level), item: it, level, tier, sec });
     });
+  }
+
+  /* The memory bank. These are section-scoped rather than unit-scoped, like the
+     corpus: a verse is something you carry, not something one lesson owns. The
+     dozen verses already attached to units keep their unit and their id, so
+     nothing anybody has already learned is reset. */
+  for (const v of MEMORY_VERSES) {
+    const sec = SECTIONS.find((s) => s.n === v.sec) || SECTIONS[0];
+    add({ kind: "verse", id: v.id, sec, vid: v.id, verse: v, use: v.use });
   }
 
   _cache = out;
@@ -134,7 +145,11 @@ export function reviewPool(prog) {
   );
 
   return allReviewables().filter((r) => {
-    if (r.kind !== "corpus") return done.has(r.unit.id);
+    /* Unit-owned items -- checks, and the verses the course attaches to a
+       lesson -- open with their unit. Everything else belongs to a section. */
+    if (r.unit) return done.has(r.unit.id);
+    if (r.kind === "verse") return openSections.has(r.sec.n);
+    if (r.kind !== "corpus") return false;
     if (!openSections.has(r.item.sec)) return false;
     /* Ladder gate: a level opens when the one below it has been answered
        correctly twice. Being asked to defend something you cannot yet state is
@@ -237,6 +252,13 @@ export function sectionStats(prog) {
     .map((r) => ({ ...r, accuracy: r.seen ? r.correct / r.seen : null }));
 }
 
+/* Every card that exists, whether or not it is reachable yet. reviewPool is
+   gated -- by unit for checks, by section for verses and the corpus, and by the
+   ladder for the higher levels -- so its size is what you can be asked today,
+   not how much there is. Both numbers are worth showing and they must not be
+   confused: one is the road ahead, the other is the road open. */
+export const TOTAL_CARDS = allReviewables().length;
+
 export function dueCount(prog, now = Date.now()) {
   const srs = prog.srs || {};
   return reviewPool(prog).filter((r) => isDue(srs[r.id], now)).length;
@@ -263,27 +285,70 @@ export const DOSE = {
   backlogWall: 40,  // above this many overdue, introduce nothing new at all
 };
 
+/* ── Pace ──
+   The corpus is now over a thousand cards. At the default dose that is roughly
+   two years of daily use to meet all of it, which is the right size for the
+   thing this claims to be and the wrong size for someone who wants to move.
+
+   So the dose is a choice rather than a constant. The wall scales with it,
+   because a bigger daily intake earns a bigger tolerable backlog; what does not
+   change is the rule that new material is withheld while you are behind, since
+   that is the part doing the actual work. */
+export const PACES = [
+  { id: "steady",   name: "Steady",   session: 12, reviewFirst: 9,  newPerDay: 5,  backlogWall: 30,
+    blurb: "About four minutes. Built to survive a bad week." },
+  { id: "standard", name: "Standard", session: 20, reviewFirst: 14, newPerDay: 8,  backlogWall: 40,
+    blurb: "About seven minutes. The pace the throttle was tuned for." },
+  { id: "hard",     name: "Hard",     session: 32, reviewFirst: 22, newPerDay: 14, backlogWall: 60,
+    blurb: "About twelve minutes. Roughly a year to meet the whole corpus." },
+];
+
+export const paceOf = (prog) =>
+  PACES.find((p) => p.id === (prog && prog.pace)) || PACES[1];
+
+/* Backlog is not the same as due.
+
+   A card you missed ten minutes ago is due again -- that is the point, a lapse
+   comes back inside the session that caused it. But counting it as backlog
+   punishes exactly the person the throttle exists to protect: a learner at 65%
+   accuracy generates a dozen relearning cards every sitting, hits the wall on
+   their own lapses, and is refused new material for the rest of the year. The
+   two-year simulation showed them blocked on 294 days out of 508, which is not
+   a throttle, it is a locked door.
+
+   So backlog means work carried over from a previous day. Today's misses are
+   in progress. */
+const isBacklog = (card, now) =>
+  !!card && !!card.due && card.due <= now && !(card.n === 0 && now - card.last < DAY);
+
 export function dailyPlan(prog, now = Date.now()) {
   const srs = prog.srs || {};
+  const dose = paceOf(prog);
   const pool = reviewPool(prog);
-  const overdue = pool.filter((r) => srs[r.id] && isDue(srs[r.id], now)).length;
+  const due = pool.filter((r) => srs[r.id] && srs[r.id].seen && isDue(srs[r.id], now)).length;
+  const overdue = pool.filter((r) => isBacklog(srs[r.id], now)).length;
   const unseen = pool.filter((r) => !srs[r.id] || !srs[r.id].seen).length;
 
   /* New items are earned by keeping the backlog down. Between zero and the
      wall the allowance tapers, so it degrades gracefully instead of switching
      off in one step and feeling like a punishment. */
-  const room = Math.max(0, 1 - overdue / DOSE.backlogWall);
-  const allowNew = overdue >= DOSE.backlogWall ? 0 : Math.round(DOSE.newPerDay * room);
+  const room = Math.max(0, 1 - overdue / dose.backlogWall);
+  const allowNew = overdue >= dose.backlogWall ? 0 : Math.round(dose.newPerDay * room);
 
   return {
+    dose,
+    due,
     overdue,
     unseen,
     newAllowed: Math.min(allowNew, unseen),
-    reviewTarget: Math.min(overdue, DOSE.reviewFirst),
-    blocked: overdue >= DOSE.backlogWall,
+    /* Sized from everything due, not just the carried-over part -- otherwise a
+       session that lapsed six cards would fill the rest of itself with new
+       material instead of the six you just got wrong. */
+    reviewTarget: Math.min(due, dose.reviewFirst),
+    blocked: overdue >= dose.backlogWall,
     /* Said in the app, because a learner who is refused new material deserves
        to know why and what clears it. */
-    reason: overdue >= DOSE.backlogWall
+    reason: overdue >= dose.backlogWall
       ? `${overdue} waiting. Clear some of those and new material opens up again.`
       : allowNew === 0
         ? "Caught up. Nothing new today — come back tomorrow."
@@ -305,13 +370,17 @@ export function dailySession(prog, now = Date.now()) {
      only the seen ones returns almost nothing -- which is exactly what the
      first version did, and the year-long simulation caught it before anyone
      had to live with it. */
-  const due = orderItems(pool.filter((r) => isSeen(r) && isDue(srs[r.id], now)), srs, 999, now);
-  const fresh = orderItems(pool.filter((r) => !isSeen(r)), srs, 999, now);
+  /* Never ordered further than the session needs. The interleaver is quadratic
+     in the list it is handed, and handing it the whole thousand-card pool twice
+     on every render was costing more than the whole rest of the screen. */
+  const size = plan.dose.session;
+  const due = orderItems(pool.filter((r) => isSeen(r) && isDue(srs[r.id], now)), srs, size, now);
+  const fresh = orderItems(pool.filter((r) => !isSeen(r)), srs, plan.newAllowed, now);
 
   const review = due.slice(0, plan.reviewTarget);
   const brandNew = fresh.slice(0, plan.newAllowed);
-  const room = Math.max(0, DOSE.session - review.length - brandNew.length);
+  const room = Math.max(0, size - review.length - brandNew.length);
   const filler = due.slice(review.length, review.length + room);
 
-  return { plan, items: [...review, ...brandNew, ...filler].slice(0, DOSE.session) };
+  return { plan, items: [...review, ...brandNew, ...filler].slice(0, size) };
 }
