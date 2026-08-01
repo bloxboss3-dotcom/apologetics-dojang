@@ -27,6 +27,7 @@
    ═══════════════════════════════════════════════ */
 
 import { SECTIONS, ALL_UNITS, VERSES } from "./course.js";
+import { CORPUS, cardId, LEVEL_META } from "./corpus.js";
 
 export const DAY = 86400000;
 
@@ -57,6 +58,18 @@ export function allReviewables() {
       });
     }
   }
+  /* The corpus, one entry per item AND level. This is where the density comes
+     from: the same argument is a different thing to know at "recognise" than at
+     "reconstruct" than at "defend", and each earns its own schedule. Levels
+     unlock in order, so nothing asks you to defend a claim you cannot yet
+     state. */
+  for (const it of CORPUS) {
+    const sec = SECTIONS.find((s) => s.n === it.sec) || SECTIONS[0];
+    it.levels.forEach((level, tier) => {
+      add({ kind: "corpus", id: cardId(it.id, level), item: it, level, tier, sec });
+    });
+  }
+
   _cache = out;
   return out;
 }
@@ -111,7 +124,25 @@ export function strength(card) {
    testing cold, which the course explicitly refuses to do. */
 export function reviewPool(prog) {
   const done = new Set(prog.done || []);
-  return allReviewables().filter((r) => done.has(r.unit.id));
+  const srs = prog.srs || {};
+
+  /* A section is open once any of its units is cleared. Corpus items are not
+     tied to a single unit the way a check is -- a distinction belongs to a
+     section, not a lesson. */
+  const openSections = new Set(
+    SECTIONS.filter((s) => s.units.some((u) => done.has(u.id))).map((s) => s.n)
+  );
+
+  return allReviewables().filter((r) => {
+    if (r.kind !== "corpus") return done.has(r.unit.id);
+    if (!openSections.has(r.item.sec)) return false;
+    /* Ladder gate: a level opens when the one below it has been answered
+       correctly twice. Being asked to defend something you cannot yet state is
+       not desirable difficulty, it is just failure. */
+    if (r.tier === 0) return true;
+    const below = srs[cardId(r.item.id, r.item.levels[r.tier - 1])];
+    return !!below && below.n >= 2;
+  });
 }
 
 /* Overdue first, then never-reviewed, then weakest. Ties broken by section so
@@ -119,8 +150,15 @@ export function reviewPool(prog) {
    interleaving the curriculum promises, applied to the queue rather than left
    to chance. */
 export function buildSession(prog, size = 12, now = Date.now()) {
-  const srs = prog.srs || {};
-  const pool = reviewPool(prog);
+  return orderItems(reviewPool(prog), prog.srs || {}, size, now);
+}
+
+/* The ordering, applied to whatever list it is given. Kept separate from
+   buildSession because the daily plan needs to order the due items and the new
+   items independently -- asking for a mixed session and then filtering it is
+   how the first version of this ended up returning almost nothing, since
+   unseen items outrank everything and were then filtered out. */
+export function orderItems(pool, srs, size, now = Date.now()) {
   if (!pool.length) return [];
 
   const scored = pool.map((r) => {
@@ -141,21 +179,34 @@ export function buildSession(prog, size = 12, now = Date.now()) {
      whichever section has come up least in this session. That spreads the
      session across everything learned so far, which is the point. */
   const picked = [];
-  const used = new Map();
+  const usedSec = new Map();
+  const usedKind = new Map();
   const rest = scored.slice();
   const BAND = 60; // treat priorities this close as interchangeable
 
+  /* Spread across sections AND across question shapes. Section alone is not
+     enough: checks are registered before corpus items within a section, so a
+     tie on priority handed out eight multiple-choice questions and no arguments
+     at all. Mixing the shape is also the better drill -- a session that moves
+     between recognising, rebuilding and reciting is harder to coast through
+     than eight of the same thing. */
   while (picked.length < size && rest.length) {
     const best = rest[0].priority;
-    const lastSec = picked.length ? picked[picked.length - 1].sec.n : null;
+    const last = picked.length ? picked[picked.length - 1] : null;
     let choice = 0, choiceScore = Infinity;
     for (let i = 0; i < rest.length && rest[i].priority >= best - BAND; i++) {
-      const n = rest[i].sec.n;
-      const score = (used.get(n) || 0) * 2 + (n === lastSec ? 1 : 0);
+      const r = rest[i];
+      const kind = r.kind === "corpus" ? `${r.item.type}:${r.level}` : r.kind;
+      const score = (usedSec.get(r.sec.n) || 0) * 2
+                  + (usedKind.get(kind) || 0) * 2
+                  + (last && r.sec.n === last.sec.n ? 1 : 0)
+                  + (last && kind === (last.kind === "corpus" ? `${last.item.type}:${last.level}` : last.kind) ? 2 : 0);
       if (score < choiceScore) { choiceScore = score; choice = i; }
     }
     const took = rest.splice(choice, 1)[0];
-    used.set(took.sec.n, (used.get(took.sec.n) || 0) + 1);
+    const tookKind = took.kind === "corpus" ? `${took.item.type}:${took.level}` : took.kind;
+    usedSec.set(took.sec.n, (usedSec.get(took.sec.n) || 0) + 1);
+    usedKind.set(tookKind, (usedKind.get(tookKind) || 0) + 1);
     picked.push(took);
   }
   return picked;
@@ -165,24 +216,102 @@ export function buildSession(prog, size = 12, now = Date.now()) {
 
 export function sectionStats(prog) {
   const srs = prog.srs || {};
-  const done = new Set(prog.done || []);
-  return SECTIONS.map((sec) => {
-    let seen = 0, correct = 0, due = 0, total = 0, unseen = 0;
-    for (const u of sec.units) {
-      if (!done.has(u.id)) continue;
-      for (const r of allReviewables().filter((x) => x.unit.id === u.id)) {
-        total += 1;
-        const c = srs[r.id];
-        if (!c || !c.seen) { unseen += 1; continue; }
-        seen += c.seen; correct += c.correct;
-        if (isDue(c)) due += 1;
-      }
-    }
-    return { sec, total, due: due + unseen, accuracy: seen ? correct / seen : null };
-  }).filter((x) => x.total > 0);
+  /* Built from the same pool the scheduler uses, rather than by walking units
+     and reaching for r.unit.id -- corpus items belong to a section and have no
+     unit at all, which is what took the whole app down the first time this ran
+     against them. One source of truth for what counts. */
+  const pool = reviewPool(prog);
+  const rows = new Map();
+  for (const r of pool) {
+    const key = r.sec.n;
+    if (!rows.has(key)) rows.set(key, { sec: r.sec, total: 0, seen: 0, correct: 0, due: 0 });
+    const row = rows.get(key);
+    row.total += 1;
+    const c = srs[r.id];
+    if (!c || !c.seen) { row.due += 1; continue; }
+    row.seen += c.seen; row.correct += c.correct;
+    if (isDue(c)) row.due += 1;
+  }
+  return [...rows.values()]
+    .sort((a, b) => a.sec.n - b.sec.n)
+    .map((r) => ({ ...r, accuracy: r.seen ? r.correct / r.seen : null }));
 }
 
 export function dueCount(prog, now = Date.now()) {
   const srs = prog.srs || {};
   return reviewPool(prog).filter((r) => isDue(srs[r.id], now)).length;
+}
+
+/* ─────────────── THE DAILY DOSE ───────────────
+
+   A corpus of several hundred items is only carryable if you are never asked to
+   face several hundred items. This is the part that makes the size survivable,
+   and it is the same mechanism Duolingo actually runs on: a small daily
+   session, and -- the piece people miss -- new material withheld while you are
+   behind on old material.
+
+   Without the second rule a big corpus collapses in about a week. You meet
+   forty new things on day one, they all come due on day two along with forty
+   more, and by day four the backlog is a wall and you stop. The throttle is not
+   a limitation on the app. It is the thing that makes the app finishable.
+*/
+
+export const DOSE = {
+  session: 20,      // items in one sitting
+  reviewFirst: 14,  // of those, how many are review before any new item is shown
+  newPerDay: 8,     // new items introduced on a good day
+  backlogWall: 40,  // above this many overdue, introduce nothing new at all
+};
+
+export function dailyPlan(prog, now = Date.now()) {
+  const srs = prog.srs || {};
+  const pool = reviewPool(prog);
+  const overdue = pool.filter((r) => srs[r.id] && isDue(srs[r.id], now)).length;
+  const unseen = pool.filter((r) => !srs[r.id] || !srs[r.id].seen).length;
+
+  /* New items are earned by keeping the backlog down. Between zero and the
+     wall the allowance tapers, so it degrades gracefully instead of switching
+     off in one step and feeling like a punishment. */
+  const room = Math.max(0, 1 - overdue / DOSE.backlogWall);
+  const allowNew = overdue >= DOSE.backlogWall ? 0 : Math.round(DOSE.newPerDay * room);
+
+  return {
+    overdue,
+    unseen,
+    newAllowed: Math.min(allowNew, unseen),
+    reviewTarget: Math.min(overdue, DOSE.reviewFirst),
+    blocked: overdue >= DOSE.backlogWall,
+    /* Said in the app, because a learner who is refused new material deserves
+       to know why and what clears it. */
+    reason: overdue >= DOSE.backlogWall
+      ? `${overdue} waiting. Clear some of those and new material opens up again.`
+      : allowNew === 0
+        ? "Caught up. Nothing new today — come back tomorrow."
+        : `${allowNew} new ${allowNew === 1 ? "item" : "items"} today, once the review is done.`,
+  };
+}
+
+/* Review first, then new. Facing the backlog before meeting anything new is
+   what keeps the backlog from growing, and it is the opposite of what feels
+   nice, which is usually the sign it is right. */
+export function dailySession(prog, now = Date.now()) {
+  const plan = dailyPlan(prog, now);
+  const srs = prog.srs || {};
+  const pool = reviewPool(prog);
+  const isSeen = (r) => srs[r.id] && srs[r.id].seen;
+
+  /* Ordered separately, not filtered out of one mixed list. Unseen items
+     outrank everything on priority, so asking for a session and then keeping
+     only the seen ones returns almost nothing -- which is exactly what the
+     first version did, and the year-long simulation caught it before anyone
+     had to live with it. */
+  const due = orderItems(pool.filter((r) => isSeen(r) && isDue(srs[r.id], now)), srs, 999, now);
+  const fresh = orderItems(pool.filter((r) => !isSeen(r)), srs, 999, now);
+
+  const review = due.slice(0, plan.reviewTarget);
+  const brandNew = fresh.slice(0, plan.newAllowed);
+  const room = Math.max(0, DOSE.session - review.length - brandNew.length);
+  const filler = due.slice(review.length, review.length + room);
+
+  return { plan, items: [...review, ...brandNew, ...filler].slice(0, DOSE.session) };
 }
