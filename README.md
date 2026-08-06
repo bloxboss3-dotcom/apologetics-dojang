@@ -1,6 +1,8 @@
 # Apologetics Dojang
 
-Apologetics training built as a game. Read, drill, spar. Seven sections, thirty-nine units, a 1,122-card corpus on a spaced-repetition schedule, a battle system, and a written finisher that scores what you actually wrote.
+A flashcard app for apologetics. 430 things worth knowing — verses, quotes, arguments, distinctions, objections, evidence — each met three times: **understand it, memorise it, recall it cold.** Every card is answered out loud before anything is revealed, and you grade yourself. 1,290 cards on a spaced-repetition schedule.
+
+There are also thirty-nine lessons with a battle system and a written finisher, but they are optional now. The deck is the app.
 
 **Live:** https://bloxboss3-dotcom.github.io/apologetics-dojang/
 
@@ -46,17 +48,20 @@ Node 18 or newer.
 ```
 src/
   main.jsx           mount point — you'll never touch this
-  App.jsx            the engine: screens, battle, drills, shop, effects
+  App.jsx            shell: home, deck browser, lessons, battle, shop, effects
+  Study.jsx          the card — cue, say it, reveal, grade
+  speech.js          optional say-it-into-the-mic check (Web Speech API)
   data/
     course.js        ← the curriculum: sections, units, teach screens, checks, bosses
-    corpus.js        the ladder and the drill generator — machinery, not content
+    cards.js         the card model — three stages per item, and the first-letter scaffold
+    corpus.js        types, and the flattening the deck is built from
     corpus.arguments.js     35 arguments, premises ordered, with what each delivers
     corpus.distinctions.js  85 distinctions, each with when to reach for it
     corpus.quotes.js        96 quotes, sourced, with what the line is for
     corpus.objections.js    44 objections at full strength, answered, with the residue
     corpus.evidence.js      38 figures, each with its caveat and its counter
     scripture.js     120-verse memory bank (WEB), each with the job it does
-    review.js        SM-2 scheduler, interleaving, the daily-dose throttle, paces
+    review.js        SM-2 with four-button grading, interleaving, the daily throttle, paces
     economy.js       cosmetics, consumables, perks, prices, unlock gates
 index.html
 vite.config.js       base: "./" so Pages works without hardcoding the repo name

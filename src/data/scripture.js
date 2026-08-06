@@ -517,4 +517,56 @@ export const MEMORY_VERSES = [
     text: "having a good conscience; that, while you are spoken against as evildoers, they may be disappointed who curse your good way of life in Christ.",
     use: "With a good conscience, so that those who speak against you may be ashamed. The verse right after the one this whole app is named for -- and it is about your conduct, not your arguments." },
 
+  /* ─────────── the twelve the lessons already carried ───────────
+     These were attached to units before there was a memory bank. They keep
+     their original ids so nothing anyone already learned is orphaned, and they
+     now carry a `use` like everything else. */
+
+  { id: "v:pet3", sec: 1, ref: "1 Peter 3:15",
+    text: "Always be ready to give an answer to everyone who asks you a reason concerning the hope that is in you, with humility and fear.",
+    use: "The verse this whole app is built on. Note the last three words — the manner is commanded as firmly as the readiness." },
+
+  { id: "v:is1", sec: 1, ref: "Isaiah 1:18",
+    text: "“Come now, and let us reason together,” says Yahweh.",
+    use: "Reasoning is God's own invitation, not a concession to sceptics. Useful against the idea that argument and faith are opposed." },
+
+  { id: "v:pr18", sec: 1, ref: "Proverbs 18:13",
+    text: "He who answers before he hears, that is folly and shame to him.",
+    use: "The single most-violated verse in apologetics. Ask what they mean before you answer what you assume they meant." },
+
+  { id: "v:ac17", sec: 2, ref: "Acts 17:28",
+    text: "For in him we live, and move, and have our being.",
+    use: "Paul quoting a pagan poet to pagans. Both the theology — sustaining causation — and the method are worth having." },
+
+  { id: "v:ex34", sec: 2, ref: "Exodus 34:6",
+    text: "Yahweh, a merciful and gracious God, slow to anger, and abundant in loving kindness and truth.",
+    use: "God's self-description. When someone says the Old Testament God is nothing but wrath, this is the text he gives about himself." },
+
+  { id: "v:mic6", sec: 2, ref: "Micah 6:8",
+    text: "What does Yahweh require of you, but to act justly, to love mercy, and to walk humbly with your God?",
+    use: "The whole moral law compressed. Reach for it when the conversation turns from whether God exists to what he supposedly wants." },
+
+  { id: "v:nah1", sec: 4, ref: "Nahum 1:3",
+    text: "Yahweh is slow to anger, and great in power, and will by no means leave the guilty unpunished.",
+    use: "Held next to Exodus 34:6 it makes the point that patience and judgement are the same character, not two moods." },
+
+  { id: "v:rom5", sec: 4, ref: "Romans 5:8",
+    text: "But God commends his own love toward us, in that while we were yet sinners, Christ died for us.",
+    use: "The Christian answer to suffering is not an explanation but a claim about where God was. Say which of the two you are offering." },
+
+  { id: "v:gen15", sec: 5, ref: "Genesis 15:16",
+    text: "In the fourth generation they will come here again, for the iniquity of the Amorite is not yet full.",
+    use: "Four hundred years of delay written into the conquest narrative. It does not dissolve the difficulty; it shows the text is not describing an impulse." },
+
+  { id: "v:deut9", sec: 5, ref: "Deuteronomy 9:5",
+    text: "Not for your righteousness do you go in to possess their land, but for the wickedness of these nations.",
+    use: "The text denying Israel any moral superiority, in the middle of the conquest account. Cite it before the ethnic-cleansing reading is put to you." },
+
+  { id: "v:co15", sec: 6, ref: "1 Corinthians 15:3",
+    text: "For I delivered to you first of all that which I also received, that Christ died for our sins according to the Scriptures.",
+    use: "“Received… delivered” is technical language for passing on a fixed formula. It is why this creed is dated to within a few years of the crucifixion." },
+
+  { id: "v:col4", sec: 7, ref: "Colossians 4:6",
+    text: "Let your speech be always with grace, seasoned with salt, that you may know how you ought to answer each one.",
+    use: "“Each one” — the answer is fitted to the person, not recited at them. The verse that governs section seven." },
 ];
