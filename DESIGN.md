@@ -260,3 +260,60 @@ exactly the person the throttle exists to protect: at 65% accuracy a learner
 generates a dozen relearning cards a sitting, hits the wall on their own
 lapses, and is refused new material indefinitely. Backlog now means work
 carried over from a previous day; today's misses are in progress.
+
+---
+
+## 9. The pivot: from course to deck
+
+Written after the first real user report, which was the only one that mattered:
+
+> "I'm not learning very well or feeling motivated to get on it… with the verses,
+> if I had to say it instead of filling the blanks — that system has been really
+> annoying. Same with the concepts. What I want is the understanding of a quote,
+> or verse, and then the memorization of it, and then the recall to that quote."
+
+That is a diagnosis, and it is correct. Two failures, both in the interaction
+rather than the content.
+
+**The drills tested recognition and called it memory.** Multiple choice, and a
+word bank you drag into blanks. You can put the right chip in the right blank
+without being able to say the verse — and saying the verse is the entire point.
+The tapping puzzle also costs thirty seconds a card, which is why sessions felt
+long while teaching little.
+
+**The path was in the way.** Everything was gated behind lesson progress, so
+wanting to learn a verse was not sufficient reason to be allowed to.
+
+### What replaced it
+
+Every item is a flashcard, met at three stages, in this order:
+
+| | | |
+|---|---|---|
+| **1 · Understand** | What is this, and what is it FOR? | Memorising words whose job you can't state is wasted work. |
+| **2 · Memorise** | The words, on a first-letter scaffold | `H_ w__ a______ b_____ h_ h____` — the technique people actually use, and no tapping at all. |
+| **3 · Recall** | The cue alone | Say the whole thing. This is the one that counts. |
+
+One shape for every card: **cue → say it out loud → reveal → grade yourself.**
+Four grades, Anki-style, each showing the interval it buys.
+
+Where there is an exact text, you can say it into the microphone and get the
+words you dropped highlighted. Two rules: it is never required, and it is never
+the judge — browser speech recognition mangles "Yahweh" and "aseity", so it
+reports, and you decide.
+
+### What was cut
+
+- The word-bank verse drill, entirely.
+- Multiple-choice drills as the review mechanism.
+- Lesson gating on the deck. All seven decks are on from the first launch;
+  turn one off if you want to narrow it.
+- The lessons writing to the schedule. Two systems writing one store is how the
+  old build ended up with review records nothing could display.
+
+### What was kept
+
+Every word of the corpus, the spacing algorithm, the interleaving, the daily
+throttle, the streak, belts, coins and packs — and the lessons themselves, as
+optional reading, because the boss rounds are the only place in the app where
+something you wrote gets read back to you.

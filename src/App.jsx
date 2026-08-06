@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { grade, blank, dailySession, checkId, verseId, sectionStats, PACES, paceOf, TOTAL_CARDS } from "./data/review.js";
-import { drillFor, LEVEL_META } from "./data/corpus.js";
+import { dailySession, sectionStats, PACES, paceOf, TOTAL_CARDS, dayStamp } from "./data/review.js";
+import { allCards, STAGE_META, ITEM_COUNT } from "./data/cards.js";
+import Study from "./Study.jsx";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
@@ -179,6 +180,129 @@ const CSS = `
 .dj .card { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:18px; }
 .dj .card + .card { margin-top:12px; }
 .dj .quote { border-left:3px solid var(--gold); padding-left:16px; }
+
+/* ═══════════════════ THE CARD ═══════════════════
+   One shape for every card in the deck: cue, say it, reveal, grade. The old
+   drills needed a dozen widgets — option lists, word banks, drop slots, drag
+   affordances. This needs four things and reads the same every time, which is
+   most of why it is faster to get through. */
+
+/* Progress along the session. Thin on purpose: a fat progress bar invites you
+   to watch the bar instead of the card. */
+/* The card fills the viewport so the grade buttons sit at the bottom every
+   time. Without it a one-line answer leaves them floating mid-screen and a long
+   one pins them to the bottom, so your thumb has to go looking. */
+.dj .cardwrap { min-height:calc(100vh - env(safe-area-inset-top)); display:flex; flex-direction:column; }
+.dj .cardwrap > .dock { margin-top:auto; }
+
+.dj .qbar { height:3px; border-radius:3px; background:var(--line); overflow:hidden; }
+.dj .qbar > i { display:block; height:100%; background:var(--gold); transition:width .3s cubic-bezier(.2,.9,.3,1); }
+
+/* The cue. Set in the serif at display size because it is the one thing on
+   screen you are meant to look at while you speak. */
+.dj .cue { font-size:clamp(23px,6.4vw,30px); line-height:1.22; margin-top:14px; }
+
+/* The first-letter scaffold. Monospaced so the underscores line up into a
+   shape you can read the rhythm off — that shape is doing the remembering. */
+.dj .scaffold { font-family:'JetBrains Mono',monospace; font-size:14px; line-height:2.05;
+  letter-spacing:.02em; color:var(--gold); background:#0F141B; border:1px solid var(--line);
+  border-left:3px solid var(--gold); border-radius:12px; padding:14px 15px; margin-top:18px;
+  white-space:pre-wrap; word-break:break-word; }
+
+/* The answer. Serif, large, generously led — you are reading this against what
+   you just said, and cramped text makes that comparison hard. */
+.dj .answer { font-family:Fraunces,Georgia,serif; font-size:19px; line-height:1.55;
+  margin-top:20px; white-space:pre-wrap; animation:rise .22s ease both; }
+.dj .answer .hit { color:var(--paper); }
+/* Missed words are dimmed, never marked wrong in red. The microphone is an aid,
+   not the judge, and colouring its mistakes as errors would make it one. */
+.dj .answer .miss { color:#5A6577; }
+
+.dj .notecard { margin-top:16px; border-left:3px solid var(--line); padding:2px 0 2px 14px; }
+.dj .notecard .body { color:var(--muted); white-space:pre-wrap; }
+
+/* The microphone. Always optional, always secondary — an outline button, never
+   the primary action, because the primary action is opening your mouth. */
+.dj .mic { display:flex; align-items:center; gap:9px; width:100%; padding:12px 14px; border-radius:12px;
+  background:transparent; border:1px solid var(--line); color:var(--muted);
+  font:500 13.5px Inter,sans-serif; cursor:pointer; transition:border-color .15s,color .15s; }
+.dj .mic:hover { border-color:var(--gold); color:var(--paper); }
+.dj .mic .dot { width:9px; height:9px; border-radius:50%; background:var(--line); flex:none; }
+.dj .mic.on { border-color:var(--bad); color:var(--paper); }
+.dj .mic.on .dot { background:var(--bad); animation:pulse 1.15s ease-in-out infinite; }
+@keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.35; transform:scale(.7); } }
+.dj .heard { margin-top:10px; font-size:14px; line-height:1.5; color:var(--muted); font-style:italic; }
+
+/* The four grades. Full width, thumb height, colour-coded left to right so the
+   choice is muscle memory after a day — the interval under each is what makes
+   an honest answer feel like it has consequences. */
+.dj .raterow { display:flex; gap:6px; }
+.dj .rate { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px;
+  border:1px solid var(--line); border-radius:13px; padding:11px 2px 9px; cursor:pointer;
+  background:var(--panel); color:var(--paper); transition:transform .09s, border-color .12s;
+  box-shadow:0 3px 0 rgba(0,0,0,.4); }
+.dj .rate:active { transform:translateY(2px); box-shadow:0 1px 0 rgba(0,0,0,.4); }
+.dj .rate .rname { font:600 13.5px Inter,sans-serif; }
+.dj .rate .rivl { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); }
+.dj .rate.again { border-color:#4A2A28; } .dj .rate.again .rname { color:var(--bad); }
+.dj .rate.hard  { border-color:#4A3A22; } .dj .rate.hard  .rname { color:var(--gold); }
+.dj .rate.good  { border-color:#2A4A38; } .dj .rate.good  .rname { color:var(--good); }
+.dj .rate.easy  { border-color:#2A3F4A; } .dj .rate.easy  .rname { color:#6FB3D6; }
+
+.dj .tallyrow { display:flex; gap:8px; margin-top:22px; }
+.dj .tallybox { flex:1; text-align:center; padding:12px 4px; border-radius:13px;
+  background:var(--panel); border:1px solid var(--line); }
+.dj .tallybox.again { border-color:#4A2A28; } .dj .tallybox.hard { border-color:#4A3A22; }
+.dj .tallybox.good { border-color:#2A4A38; } .dj .tallybox.easy { border-color:#2A3F4A; }
+
+.dj .pill.stage-understand { color:#8FA8C4; border-color:#2C3D4E; }
+.dj .pill.stage-memorise   { color:var(--gold); border-color:#4A3A22; }
+.dj .pill.stage-recall     { color:var(--good); border-color:#2A4A38; }
+
+@keyframes rise { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:none; } }
+
+/* ═══════════════════ HOME ═══════════════════ */
+
+/* The single call to action. Bordered in gold and sitting above everything
+   else because the answer to "what am I meant to do here" should take no
+   thought at all. */
+.dj .todaycard { margin-top:16px; padding:20px; border-radius:18px;
+  background:linear-gradient(180deg,#1A222E 0%,#141B25 100%);
+  border:1px solid #4A3A22; box-shadow:0 0 40px -18px var(--gold); }
+
+.dj .statrow { display:flex; gap:10px; margin-top:18px; }
+.dj .statrow > div { flex:1; }
+.dj .statn { font-size:22px; line-height:1.1; }
+.dj .statsub { color:var(--muted); font-size:13px; }
+
+/* A deck row is a toggle, so it is one button rather than a row with a switch
+   in it — the whole strip is the tap target. */
+.dj .deck { display:flex; align-items:center; gap:10px; width:100%; padding:12px 13px;
+  border-radius:13px; background:var(--panel); border:1px solid var(--line);
+  color:var(--paper); cursor:pointer; text-align:left; transition:opacity .15s; }
+.dj .deck.off { opacity:.42; }
+.dj .deck .dname { flex:1; min-width:0; font-size:14px; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.dj .dcount { font-size:10.5px; color:var(--muted); flex:none; }
+.dj .toggle { flex:none; width:34px; height:19px; border-radius:19px; background:var(--line);
+  position:relative; transition:background .16s; }
+.dj .toggle::after { content:""; position:absolute; top:2px; left:2px; width:15px; height:15px;
+  border-radius:50%; background:var(--muted); transition:transform .16s,background .16s; }
+.dj .toggle.on { background:#2A4A38; }
+.dj .toggle.on::after { transform:translateX(15px); background:var(--good); }
+
+.dj .search { width:100%; margin-top:16px; padding:12px 14px; border-radius:12px;
+  background:var(--panel); border:1px solid var(--line); color:var(--paper);
+  font:400 14.5px Inter,sans-serif; }
+.dj .search::placeholder { color:var(--muted); }
+.dj .search:focus { outline:none; border-color:var(--gold); }
+
+.dj .browserow { background:var(--panel); border:1px solid var(--line); border-radius:13px; overflow:hidden; }
+.dj .browsehead { display:flex; align-items:center; gap:10px; width:100%; padding:12px 13px;
+  background:none; border:none; color:var(--paper); cursor:pointer; text-align:left; }
+.dj .browsehead:hover { background:var(--panel2); }
+
+
 .dj .dock { position:sticky; bottom:0; margin:28px -18px 0; padding:14px 18px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(to top,var(--ink) 0%,var(--ink) 68%,rgba(10,13,18,.82) 100%); z-index:15; }
 .dj .dock-in { max-width:620px; margin:0 auto; }
 .dj .btn { width:100%; border:none; border-radius:14px; padding:16px; font:600 15.5px Inter,sans-serif; cursor:pointer; box-shadow:0 4px 0 rgba(0,0,0,.45); transition:transform .09s,box-shadow .09s; }
@@ -253,7 +377,10 @@ const CSS = `
 /* Five tabs no longer fit a phone, so the row scrolls. flex:none keeps them
    from squashing into each other instead, which is what flex would otherwise
    do first. The scrollbar is hidden because it is a swipe, not a control. */
-.dj .tabs { display:flex; gap:7px; margin:18px 0 4px; overflow-x:auto; padding-bottom:3px;
+/* Wraps rather than scrolls. A horizontally scrolling row hid the last tab off
+   the right edge with no affordance saying it was there, so "Lessons" simply
+   did not exist for anyone who did not think to swipe a row of buttons. */
+.dj .tabs { display:flex; flex-wrap:wrap; gap:7px; margin:18px 0 4px; padding-bottom:3px;
   scrollbar-width:none; -webkit-overflow-scrolling:touch; }
 .dj .tabs::-webkit-scrollbar { display:none; }
 .dj .tabs > .tab { flex:none; }
@@ -464,12 +591,15 @@ function buildBeats(u) {
   } else {
     /* Each check carries the id its schedule is filed under, so answering it
        here and answering it in a review session update the same record. */
+    /* No schedule ids here any more. A lesson check is a beat in a battle, not
+       a card — the deck owns everything that gets scheduled, and having two
+       systems writing to the same store is how the old app ended up with review
+       records nothing could show you. */
     u.teach.forEach((_, i) => {
       b.push({ t: "read", kind: "teach", i });
-      if (u.q[i]) b.push({ t: "choice", q: u.q[i], qid: checkId(u.id, i) });
+      if (u.q[i]) b.push({ t: "choice", q: u.q[i] });
     });
-    u.q.slice(u.teach.length).forEach((q, k) =>
-      b.push({ t: "choice", q, qid: checkId(u.id, u.teach.length + k) }));
+    u.q.slice(u.teach.length).forEach((q) => b.push({ t: "choice", q }));
     if (u.v) [0, 1, 2, 3].forEach((stage) => b.push({ t: "verse", vid: u.v, stage }));
   }
   b.push({ t: "done" });
@@ -704,7 +834,7 @@ export default function App() {
   });
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(null);
-  const [screen, setScreen] = useState("path");
+  const [screen, setScreen] = useState("home");
 
   useEffect(() => {
     (async () => {
@@ -742,7 +872,7 @@ export default function App() {
   const [beltUp, setBeltUp] = useState(null);
   const [saveState, setSaveState] = useState("checking");
 
-  const finish = (unit, gained, cleared, coins, spent, graded) => {
+  const finish = (unit, gained, cleared, coins, spent) => {
     const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
     const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
     const bag = { ...prog.bag };
@@ -751,10 +881,37 @@ export default function App() {
     save({
       ...prog, xp: prog.xp + gained, coins: prog.coins + coins, bag,
       done: cleared && !prog.done.includes(unit.id) ? [...prog.done, unit.id] : prog.done,
-      srs: { ...(prog.srs || {}), ...(graded || {}) },
       streak, last: today(),
     });
     setActive(null);
+    if (after.name !== before.name) setBeltUp(after);
+  };
+
+  /* Banking a study session. One write: the schedule, the day's earnings, and
+     the streak. XP is per card held rather than per session, so a long session
+     is worth more than a short one, and Hard still pays — struggling through a
+     card you nearly lost is the most valuable rep in the deck. */
+  const bank = (results, tally) => {
+    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
+    const gained = (tally.good + tally.easy) * 3 + tally.hard * 2;
+    const coins = Math.round((tally.good + tally.easy + tally.hard) / 3);
+    const before = beltFor(prog.xp), after = beltFor(prog.xp + gained);
+    /* Which of these had never been seen before. The daily new-card allowance
+       is a budget for the DAY, not for the session — without this count you
+       could finish twelve new cards and immediately be offered twelve more,
+       which is the throttle switched off. */
+    const seenBefore = prog.srs || {};
+    const fresh = Object.keys(results).filter((id) => !seenBefore[id] || !seenBefore[id].seen).length;
+    const stamp = dayStamp();
+    save({
+      ...prog,
+      srs: { ...seenBefore, ...results },
+      xp: prog.xp + gained, coins: prog.coins + coins,
+      newToday: { d: stamp, n: (prog.newToday && prog.newToday.d === stamp ? prog.newToday.n : 0) + fresh },
+      streak, last: today(),
+    });
+    setScreen("home");
     if (after.name !== before.name) setBeltUp(after);
   };
 
@@ -793,273 +950,35 @@ export default function App() {
         <Session unit={active} belt={belt} sound={prog.sound} prog={prog}
           onQuit={() => setActive(null)} onFinish={(g, c, coins, spent) => finish(active, g, c, coins, spent)} />
       ) : screen === "science" ? (
-        <Science back={() => setScreen("path")} />
+        <Science back={() => setScreen("home")} />
       ) : screen === "shop" ? (
-        <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("path")} />
-      ) : screen === "sharpen" ? (
-        <Sharpen prog={prog} save={save} back={() => setScreen("path")} />
+        <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("lessons")} />
+      ) : screen === "study" ? (
+        <Study prog={prog} bank={bank} back={() => setScreen("home")} />
+      ) : screen === "browse" ? (
+        <Browse prog={prog} back={() => setScreen("home")} />
       ) : screen === "packs" ? (
-        <Packs prog={prog} openOne={openOne} back={() => setScreen("path")} />
+        <Packs prog={prog} openOne={openOne} back={() => setScreen("home")} />
       ) : screen === "locker" ? (
-        <Locker prog={prog} belt={belt} equip={equip} back={() => setScreen("path")} />
-      ) : (
+        <Locker prog={prog} belt={belt} equip={equip} back={() => setScreen("home")} />
+      ) : screen === "lessons" ? (
         <Path prog={prog} belt={belt} open={setActive} go={setScreen}
+          back={() => setScreen("home")} />
+      ) : (
+        <Home prog={prog} belt={belt} go={setScreen}
           saveState={saveState} restore={(o) => save({ ...prog, ...o })}
           setPace={(id) => save({ ...prog, pace: id })}
+          toggleDeck={(n) => {
+            const off = prog.decksOff || [];
+            save({ ...prog, decksOff: off.includes(n) ? off.filter((x) => x !== n) : [...off, n] });
+          }}
           toggleSound={() => save({ ...prog, sound: !prog.sound })}
           reset={() => save({
-            xp: 0, done: [], streak: 0, last: null, sound: prog.sound,
-            coins: 0, owned: [...STARTER_IDS], perks: [], bag: {},
+            xp: 0, done: [], streak: 0, last: null, sound: prog.sound, srs: {},
+            coins: 0, owned: [...STARTER_IDS], perks: [], bag: {}, decksOff: [],
             equipped: { gi: "gi-white", head: "hd-mask", weapon: "w-none", aura: "a-none" },
           })} />
       )}
-    </div>
-  );
-}
-
-/* ─────────────── CORPUS DRILL ───────────────
-
-   One screen for every item type at every level, because the drill shape is a
-   property of the question rather than of the thing being asked. drillFor
-   decides which of the three shapes applies; this only renders them.
-
-   The reveal shape is self-graded on purpose. Its answers are paragraphs said
-   out loud, and machine-marking prose against a stored string would punish
-   correct answers for using different words -- worse than trusting the person
-   doing the work. */
-function CorpusDrill({ entry, onAnswer }) {
-  const drill = useMemo(() => drillFor(entry.item, entry.level), [entry]);
-  const [sel, setSel] = useState(null);
-  const [shown, setShown] = useState(false);
-  const [order, setOrder] = useState([]);
-  const [locked, setLocked] = useState(false);
-  const lv = LEVEL_META[entry.level];
-
-  const bank = useMemo(
-    () => (drill.kind === "order"
-      ? shuffle(drill.parts.map((w, p) => ({ w, p }))) : []),
-    [drill]
-  );
-  const orderOk = drill.kind === "order"
-    && order.length === drill.parts.length
-    && order.every((o, k) => drill.parts[k] === o.w);
-
-  const finish = (ok) => { setLocked(true); onAnswer(ok); };
-
-  return (
-    <div className="fade">
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span className="eyebrow" style={{ color: "var(--gold)" }}>{lv.name}</span>
-        <span className="pill" style={{ marginLeft: "auto", fontSize: 10 }}>{entry.item.type}</span>
-      </div>
-      <p className="lead" style={{ marginTop: 12, whiteSpace: "pre-line" }}>{drill.prompt}</p>
-
-      {drill.kind === "mc" && (
-        <div style={{ marginTop: 16 }}>
-          {drill.options.map((t, k) => (
-            <button key={k}
-              className={"opt " + (locked ? (k === drill.answer ? "right" : k === sel ? "wrong" : "") : sel === k ? "sel" : "")}
-              onClick={() => !locked && setSel(k)}>{t}</button>
-          ))}
-        </div>
-      )}
-
-      {drill.kind === "order" && (<>
-        <div className={"slot " + (locked ? (orderOk ? "right" : "wrong") : "")} style={{ marginTop: 14, flexDirection: "column", gap: 6 }}>
-          {order.length === 0
-            ? <span className="muted">Tap the steps in the order they run.</span>
-            : order.map((o, n) => (
-                <button key={o.p} className="chip pop" style={{ textAlign: "left", width: "100%" }}
-                  onClick={() => !locked && setOrder(order.filter((_, k) => k !== n))}>
-                  <span className="mono" style={{ color: "var(--gold)", marginRight: 8 }}>{n + 1}</span>{o.w}
-                </button>
-              ))}
-        </div>
-        {!locked && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 12 }}>
-            {bank.filter((b) => !order.some((o) => o.p === b.p)).map((b) => (
-              <button key={b.p} className="chip" style={{ textAlign: "left" }}
-                onClick={() => setOrder([...order, b])}>{b.w}</button>
-            ))}
-          </div>
-        )}
-      </>)}
-
-      {drill.kind === "reveal" && shown && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <p className="body" style={{ whiteSpace: "pre-line" }}>{drill.answer}</p>
-        </div>
-      )}
-
-      {locked && drill.note && (
-        <div className="card" style={{ marginTop: 12, background: "#1A1610", borderColor: "#4A3A22" }}>
-          <div className="eyebrow" style={{ color: "var(--gold)" }}>Why it matters</div>
-          <p className="body" style={{ marginTop: 7, fontSize: 14, whiteSpace: "pre-line" }}>{drill.note}</p>
-        </div>
-      )}
-
-      <div className="dock"><div className="dock-in">
-        {locked ? null : drill.kind === "mc" ? (
-          <button className="btn btn-gold" disabled={sel === null}
-            onClick={() => finish(sel === drill.answer)}>Answer</button>
-        ) : drill.kind === "order" ? (
-          <button className="btn btn-gold" disabled={order.length !== drill.parts.length}
-            onClick={() => finish(orderOk)}>
-            {order.length === drill.parts.length ? "Check" : `${order.length} of ${drill.parts.length} placed`}
-          </button>
-        ) : !shown ? (
-          <button className="btn btn-gold" onClick={() => setShown(true)}>Show me</button>
-        ) : (
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-bad" style={{ flex: 1 }} onClick={() => finish(false)}>Missed it</button>
-            <button className="btn btn-good" style={{ flex: 1 }} onClick={() => finish(true)}>Had it</button>
-          </div>
-        )}
-      </div></div>
-    </div>
-  );
-}
-
-/* ─────────────── SHARPEN (spaced review) ─────────────── */
-
-/* A session of things already learned, pulled back at widening intervals and
-   deliberately mixed across sections. This is the mechanism CURRICULUM.md has
-   always described and the app never had: until now a check was asked once,
-   inside its unit, and never returned. */
-function Sharpen({ prog, save, back }) {
-  const [{ items: queue, plan }] = useState(() => dailySession(prog));
-  const [n, setN] = useState(0);
-  const [sel, setSel] = useState(null);
-  const [locked, setLocked] = useState(false);
-  const results = useRef({});
-  const [tally, setTally] = useState({ right: 0, wrong: 0 });
-
-  if (!queue.length) {
-    return (
-      <div className="wrap fade" style={{ paddingTop: 26 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button className="icon-btn" onClick={back}>← path</button>
-        </div>
-        <h1 style={{ fontSize: 27, marginTop: 18 }}>Nothing to sharpen yet</h1>
-        <p className="muted" style={{ marginTop: 10 }}>
-          Finish a unit first. Everything you're asked in a unit comes back here later — sooner if you
-          missed it, and at widening gaps once you keep getting it right.
-        </p>
-      </div>
-    );
-  }
-
-  const item = queue[n];
-  const done = n >= queue.length;
-
-  if (done) {
-    const total = tally.right + tally.wrong;
-    return (
-      <div className="wrap fade" style={{ paddingTop: 26 }}>
-        <div className="eyebrow">Session over</div>
-        <h1 style={{ fontSize: 29, marginTop: 12 }}>{tally.right} of {total}.</h1>
-        <p className="body" style={{ marginTop: 12 }}>
-          {tally.wrong === 0
-            ? "Clean. Those move to a longer interval — you'll see them again, further out."
-            : `The ${tally.wrong} you missed come back within the hour. The rest move further out.`}
-        </p>
-        {/* What today's session was made of, said after the fact rather than
-            before. Told up front it reads as a quota; told here it explains why
-            the session was the length it was. */}
-        <p className="muted" style={{ marginTop: 10 }}>
-          {plan.newAllowed > 0
-            ? `${plan.newAllowed} of those were new. `
-            : "Nothing new today — everything here you had met before. "}
-          {plan.overdue > 0
-            ? `${plan.overdue} still carried over from earlier days.`
-            : "Nothing carried over."}
-        </p>
-        <div className="dock"><div className="dock-in">
-          <button className="btn btn-gold" onClick={() => {
-            save({ ...prog, srs: { ...(prog.srs || {}), ...results.current } });
-            back();
-          }}>Bank it</button>
-        </div></div>
-      </div>
-    );
-  }
-
-  const answer = (ok) => {
-    setLocked(true);
-    const base = results.current[item.id] || (prog.srs || {})[item.id] || blank();
-    results.current[item.id] = grade(base, ok);
-    setTally((t) => ok ? { ...t, right: t.right + 1 } : { ...t, wrong: t.wrong + 1 });
-  };
-
-  return (
-    <div className="wrap fade" style={{ paddingTop: 26 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <button className="icon-btn" onClick={back}>← path</button>
-        <span className="pill" style={{ marginLeft: "auto" }}>{n + 1} / {queue.length}</span>
-      </div>
-
-      {/* Corpus items belong to a section, not a lesson, so there is no unit to
-          name -- reaching for one here took the app down the first time a
-          corpus card came up in a session. */}
-      <div className="eyebrow" style={{ marginTop: 16, color: item.sec.foe.hue }}>
-        {item.sec.title}{item.unit ? ` · ${item.unit.t}` : ""}
-      </div>
-
-      {item.kind === "corpus" ? (
-        <CorpusDrill key={item.id} entry={item} onAnswer={(ok) => {
-          answer(ok);
-          setTimeout(() => { setN(n + 1); setSel(null); setLocked(false); }, 1400);
-        }} />
-      ) : item.kind === "check" ? (
-        <>
-          <h2 style={{ fontSize: 20, marginTop: 10, lineHeight: 1.35 }}>{item.q.q}</h2>
-          <div style={{ marginTop: 18 }}>
-            {item.q.a.map((t, k) => (
-              <button key={k}
-                className={"opt " + (locked ? (k === item.q.c ? "right" : k === sel ? "wrong" : "") : sel === k ? "sel" : "")}
-                onClick={() => !locked && setSel(k)}>{t}</button>
-            ))}
-          </div>
-          {locked && <div className="card" style={{ marginTop: 14 }}>
-            <p className="body" style={{ fontSize: 14 }}>{item.q.w}</p></div>}
-        </>
-      ) : (
-        <>
-          <h2 style={{ fontSize: 20, marginTop: 10 }}>{item.verse.ref}</h2>
-          <p className="muted" style={{ marginTop: 8 }}>Say it from memory, then check yourself honestly.</p>
-          {locked && <div className="quote" style={{ marginTop: 16 }}><p className="lead">{item.verse.text}</p></div>}
-          {/* A verse memorised without knowing when to reach for it is a verse
-              you will misuse, and several in the bank are there specifically to
-              be handled carefully. So the job comes with the words. */}
-          {locked && item.verse.use && (
-            <div className="card" style={{ marginTop: 12 }}>
-              <p className="body" style={{ fontSize: 14 }}>{item.verse.use}</p>
-            </div>
-          )}
-        </>
-      )}
-
-      {item.kind !== "corpus" && <div className="dock"><div className="dock-in">
-        {!locked ? (
-          item.kind === "check"
-            ? <button className="btn btn-gold" disabled={sel === null}
-                onClick={() => answer(sel === item.q.c)}>Answer</button>
-            : <div style={{ display: "flex", gap: 8 }}>
-                <button className="use" style={{ flex: 1 }} onClick={() => { setLocked(true); }}>Show it</button>
-              </div>
-        ) : item.kind === "verse" && !(item.id in results.current) ? (
-          /* Self-graded, because only you know whether you actually had it. */
-          <div style={{ display: "flex", gap: 8 }}>
-            <button className="btn btn-bad" style={{ flex: 1 }} onClick={() => answer(false)}>Missed it</button>
-            <button className="btn btn-good" style={{ flex: 1 }} onClick={() => answer(true)}>Had it</button>
-          </div>
-        ) : (
-          <button className={"btn " + (item.kind === "check" && sel === item.q.c ? "btn-good" : "btn-gold")}
-            onClick={() => { setN(n + 1); setSel(null); setLocked(false); }}>
-            {n + 1 === queue.length ? "Finish" : "Next"}
-          </button>
-        )}
-      </div></div>}
     </div>
   );
 }
@@ -1344,9 +1263,18 @@ function JudgePanel() {
   );
 }
 
-/* ─────────────── PATH ─────────────── */
+/* ═══════════════════ HOME ═══════════════════
 
-function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore, setPace }) {
+   The front door is the deck, not the map. The old home screen was a winding
+   path of thirty-nine lesson nodes with the review tucked into a tab, which
+   told you the point of the app was to walk the path — and walking the path is
+   the part that does not make anything stick.
+
+   So: how many cards today, one button to start, and the decks underneath.
+   Everything else — lessons, packs, locker — is a link, not the main event.
+*/
+
+function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace, toggleDeck }) {
   const next = BELTS.find((b) => b.at > prog.xp);
   const pct = next ? ((prog.xp - belt.at) / (next.at - belt.at)) * 100 : 100;
   const [w, setW] = useState(0);
@@ -1354,30 +1282,18 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore, se
   const [backup, setBackup] = useState(false);
   const [copied, setCopied] = useState(false);
   const [paste, setPaste] = useState("");
+  const [more, setMore] = useState(false);
   useEffect(() => { const t = setTimeout(() => setW(pct), 250); return () => clearTimeout(t); }, [pct]);
 
-  const idx = ALL_UNITS.findIndex((u) => !prog.done.includes(u.id));
-  const nextId = idx === -1 ? null : ALL_UNITS[idx].id;
-  const look = lookOf(prog.equipped);
-  const bagCount = Object.values(prog.bag || {}).reduce((a, b) => a + b, 0);
-  /* Today's dose, not the whole backlog. Showing 58 waiting when the throttle
-     will only hand you 8 is a promise the app has no intention of keeping, and
-     the number that matters to someone deciding whether to sit down is how long
-     this will take right now. */
   const today = dailySession(prog);
-  const due = today.items.length;
-  const stats = sectionStats(prog);
+  const count = today.items.length;
+  const decks = sectionStats(prog);
   const pace = paceOf(prog);
-  /* Two different numbers, and conflating them is a lie in either direction:
-     `openCards` is what the gates will let you be asked today, TOTAL_CARDS is
-     the whole corpus including the ladder levels you have not unlocked. */
-  const openCards = stats.reduce((a, r) => a + r.total, 0);
-  const met = openCards - today.plan.unseen;
+  const met = decks.reduce((a, d) => a + d.met, 0);
+  const mature = decks.reduce((a, d) => a + d.mature, 0);
 
   return (
     <div className="wrap fade" style={{ paddingTop: 26 }}>
-      {/* Decorative, so no alt text — the title sits immediately beneath it.
-          Dimensions are declared to reserve the space before it decodes. */}
       <div className="banner"><img src="./hero.webp" alt="" width="1440" height="480" /></div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1386,40 +1302,284 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore, se
         <button className="icon-btn" onClick={toggleSound}>{prog.sound ? "♪" : "✕♪"}</button>
       </div>
 
-      <div className="card" style={{ marginTop: 16, display: "flex", gap: 14, alignItems: "center" }}>
-        <Hero beltColor={belt.color} state="" look={look} size={64} />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", gap: 16 }}>
-            <div><div className="mono" style={{ fontSize: 21, color: "var(--gold)" }}><span className="flame">▲</span>{prog.streak}</div>
-              <div className="eyebrow" style={{ marginTop: 2 }}>streak</div></div>
-            <div><div className="mono" style={{ fontSize: 21 }}>{prog.xp}</div>
-              <div className="eyebrow" style={{ marginTop: 2 }}>{belt.name}</div></div>
-            <div><div className="mono" style={{ fontSize: 21 }}>{prog.done.length}<span style={{ color: "var(--muted)", fontSize: 14 }}>/{ALL_UNITS.length}</span></div>
-              <div className="eyebrow" style={{ marginTop: 2 }}>units</div></div>
-          </div>
-          <div className="beltbar" style={{ marginTop: 10 }}><i style={{ width: w + "%", background: belt.color }} /></div>
-          <div className="eyebrow" style={{ marginTop: 6 }}>{next ? `${next.at - prog.xp} xp to ${next.name}` : "Black belt"}</div>
-        </div>
+      {/* The one thing on this screen that matters. Everything above it is
+          identity and everything below it is settings. */}
+      <div className="todaycard">
+        <div className="eyebrow">{count ? "Today" : "Caught up"}</div>
+        <h1 style={{ fontSize: 34, marginTop: 8, lineHeight: 1.1 }}>
+          {count ? <>{count} <span style={{ fontSize: 20, color: "var(--muted)" }}>cards</span></> : "Nothing due"}
+        </h1>
+        <p className="muted" style={{ marginTop: 8 }}>{today.plan.reason}</p>
+        <button className="btn btn-gold" style={{ marginTop: 16 }}
+          disabled={!count} onClick={() => go("study")}>
+          {count ? "Start — say them out loud" : "Come back tomorrow"}
+        </button>
       </div>
 
-      <div className="tabs">
-        <button className={"tab" + (due > 0 ? " on" : "")} onClick={() => go("sharpen")}>
-          Sharpen{due > 0 ? ` · ${due}` : ""}
-        </button>
-        <button className="tab" onClick={() => go("locker")}>Locker</button>
+      <div className="statrow">
+        <div><div className="mono statn" style={{ color: "var(--gold)" }}><span className="flame">▲</span>{prog.streak}</div>
+          <div className="eyebrow">day streak</div></div>
+        <div><div className="mono statn">{met}<span className="statsub">/{TOTAL_CARDS}</span></div>
+          <div className="eyebrow">cards met</div></div>
+        <div><div className="mono statn" style={{ color: "var(--good)" }}>{mature}</div>
+          <div className="eyebrow">holding</div></div>
+      </div>
+
+      <div className="beltbar" style={{ marginTop: 14 }}><i style={{ width: w + "%", background: belt.color }} /></div>
+      <div className="eyebrow" style={{ marginTop: 6 }}>
+        {belt.name} belt{next ? ` · ${next.at - prog.xp} xp to ${next.name}` : ""}
+      </div>
+
+      <div className="tabs" style={{ marginTop: 18 }}>
+        <button className="tab" onClick={() => go("browse")}>Browse the deck</button>
         <button className="tab" onClick={() => go("packs")}>Packs</button>
+        <button className="tab" onClick={() => go("locker")}>Locker</button>
+        <button className="tab" onClick={() => go("lessons")}>Lessons</button>
+      </div>
+
+      {/* Decks. All on by default — the old design made you clear a lesson
+          before a verse would even appear in review, which meant wanting to
+          learn something was not sufficient reason to be allowed to. */}
+      <h2 style={{ fontSize: 20, marginTop: 30 }}>Decks</h2>
+      <p className="muted" style={{ marginTop: 6 }}>
+        Turn one off to narrow what comes up. Nothing is locked.
+      </p>
+      <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+        {decks.map((d) => (
+          <button key={d.deck.n} className={"deck" + (d.on ? "" : " off")} onClick={() => toggleDeck(d.deck.n)}>
+            <span className="mono" style={{ fontSize: 10, color: d.deck.hue, width: 18, flex: "none" }}>
+              {String(d.deck.n).padStart(2, "0")}
+            </span>
+            <span className="dname">{d.deck.title}</span>
+            <span className="strbar" style={{ flex: "none", width: 54 }}>
+              <i style={{ width: (d.total ? (d.met / d.total) * 100 : 0) + "%", background: d.deck.hue }} />
+            </span>
+            <span className="mono dcount">{d.met}/{d.total}</span>
+            <span className={"toggle" + (d.on ? " on" : "")} />
+          </button>
+        ))}
+      </div>
+
+      <h2 style={{ fontSize: 20, marginTop: 30 }}>Pace</h2>
+      <div style={{ display: "flex", gap: 6, marginTop: 10 }}>
+        {PACES.map((p) => (
+          <button key={p.id} className="use"
+            style={{ flex: 1, padding: "10px 4px", fontSize: 12.5,
+                     borderColor: p.id === pace.id ? "var(--gold)" : "var(--line)",
+                     color: p.id === pace.id ? "var(--gold)" : "var(--muted)" }}
+            onClick={() => setPace(p.id)}>{p.name}</button>
+        ))}
+      </div>
+      <p className="muted" style={{ marginTop: 8 }}>{pace.blurb}</p>
+
+      <button className="icon-btn" style={{ marginTop: 30 }} onClick={() => setMore(!more)}>
+        {more ? "hide settings" : "settings, backup & sources →"}
+      </button>
+
+      {more && <div className="fade">
+        <p className="muted" style={{ marginTop: 16 }}>
+          Scripture from the World English Bible, which is public domain. Chesterton, MacDonald,
+          Pascal, Augustine, Aquinas, Anselm, Hume, Nietzsche and Dostoevsky are public domain and
+          quoted verbatim. Authors still in copyright — Lewis, Nagel, Ehrman, Bonhoeffer, Volf,
+          Walton and the rest — are held to a single attributed sentence each. Where an attribution
+          is traditional rather than sourced, the entry says so.
+        </p>
+        <button className="icon-btn" style={{ marginTop: 14 }} onClick={() => go("science")}>
+          why it's built this way →
+        </button>
+
+        <div className="card" style={{ marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span className="eyebrow">Build 10 · {ITEM_COUNT()} things · {TOTAL_CARDS} cards</span>
+            <span className="pill" style={{
+              marginLeft: "auto",
+              color: saveState === "ok" ? "var(--good)" : saveState === "off" ? "var(--bad)" : "var(--muted)",
+              borderColor: saveState === "ok" ? "#2F5C43" : saveState === "off" ? "#4A2422" : "var(--line)",
+            }}>
+              {saveState === "ok" ? "saving ✓" : saveState === "off" ? "not saving" : saveState === "saving" ? "saving…" : "checking"}
+            </span>
+          </div>
+          {saveState === "off" && (
+            <p className="body" style={{ marginTop: 10, fontSize: 14, color: "#E0A0A0" }}>
+              This window can't write to storage. Copy your backup code below and keep it somewhere.
+            </p>
+          )}
+          <div style={{ marginTop: 12 }}>
+            <button className="icon-btn" onClick={() => setBackup(!backup)}>
+              {backup ? "hide backup" : "back up / restore →"}
+            </button>
+          </div>
+          {backup && (
+            <div className="fade" style={{ marginTop: 12 }}>
+              <div className="eyebrow">Your save code</div>
+              <textarea readOnly value={encode(prog)} style={{ minHeight: 92, fontSize: 11, marginTop: 6 }}
+                onFocus={(e) => e.target.select()} />
+              <button className="use" style={{ marginTop: 8 }} onClick={() => {
+                const code = encode(prog);
+                if (navigator.clipboard) navigator.clipboard.writeText(code).then(() => setCopied(true), () => setCopied(false));
+                setCopied(true); setTimeout(() => setCopied(false), 1800);
+              }}>{copied ? "copied ✓" : "copy code"}</button>
+              <div className="eyebrow" style={{ marginTop: 16 }}>Paste a code to restore</div>
+              <textarea value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="DOJANG1:…"
+                style={{ minHeight: 82, fontSize: 11, marginTop: 6 }} />
+              <button className="use" style={{ marginTop: 8 }} disabled={!decode(paste)}
+                onClick={() => { const o = decode(paste); if (o) { restore(o); setPaste(""); setBackup(false); } }}>
+                {paste && !decode(paste) ? "that code isn't readable" : "restore this save"}
+              </button>
+            </div>
+          )}
+          {confirm ? (
+            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <button className="use" onClick={() => { setConfirm(false); reset(); }} style={{ borderColor: "#4A2422", color: "var(--bad)" }}>Erase everything</button>
+              <button className="use" onClick={() => setConfirm(false)}>Keep it</button>
+            </div>
+          ) : (
+            <button className="icon-btn" style={{ marginTop: 12 }} onClick={() => setConfirm(true)}>reset progress</button>
+          )}
+        </div>
+
+        <InstallCard />
+        <JudgePanel />
+      </div>}
+    </div>
+  );
+}
+
+/* ═══════════════════ BROWSE ═══════════════════
+
+   Every card in the deck, readable without being tested on it. This exists for
+   one reason: you cannot want to learn a thing you have never seen, and a
+   scheduler that only ever shows you twelve cards a day hides the other
+   thousand two hundred. Being able to scroll the whole corpus and think "I want
+   that one" is worth more to motivation than any streak counter.
+*/
+
+function Browse({ prog, back }) {
+  const [q, setQ] = useState("");
+  const [kind, setKind] = useState("All");
+  const [open, setOpen] = useState(null);
+  const srs = prog.srs || {};
+
+  const kinds = useMemo(() => ["All", ...new Set(allCards().map((c) => c.kind))], []);
+
+  /* One row per ITEM, not per card. Three rows for the same verse would be
+     three rows saying the same words. */
+  const items = useMemo(() => {
+    const byItem = new Map();
+    for (const c of allCards()) {
+      if (!byItem.has(c.item.id)) byItem.set(c.item.id, { item: c.item, kind: c.kind, sec: c.sec, cards: [] });
+      byItem.get(c.item.id).cards.push(c);
+    }
+    return [...byItem.values()];
+  }, []);
+
+  const shown = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return items.filter((r) => {
+      if (kind !== "All" && r.kind !== kind) return false;
+      if (!needle) return true;
+      return r.cards.some((c) =>
+        (c.cue + " " + c.answer + " " + (c.note || "")).toLowerCase().includes(needle));
+    });
+  }, [items, q, kind]);
+
+  return (
+    <div className="wrap fade" style={{ paddingTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="icon-btn" onClick={back}>← home</button>
+        <span className="pill" style={{ marginLeft: "auto" }}>{shown.length}</span>
+      </div>
+
+      <h1 style={{ fontSize: 27, marginTop: 16 }}>The whole deck</h1>
+      <p className="muted" style={{ marginTop: 6 }}>
+        {ITEM_COUNT()} things to know, {TOTAL_CARDS} cards. Read anything you like — nothing here is a test.
+      </p>
+
+      <input className="search" value={q} onChange={(e) => setQ(e.target.value)}
+        placeholder="Search everything…" />
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+        {kinds.map((k) => (
+          <button key={k} className={"chip " + (kind === k ? "used" : "")} onClick={() => setKind(k)}>{k}</button>
+        ))}
+      </div>
+
+      <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+        {shown.slice(0, 240).map((r) => {
+          const isOpen = open === r.item.id;
+          const met = r.cards.filter((c) => srs[c.id] && srs[c.id].seen).length;
+          return (
+            <div key={r.item.id} className="browserow">
+              <button className="browsehead" onClick={() => setOpen(isOpen ? null : r.item.id)}>
+                <span className="pill" style={{ flex: "none" }}>{r.kind}</span>
+                <span className="dname">{r.cards[0].cue}</span>
+                <span className="mono dcount">{met}/3</span>
+              </button>
+              {isOpen && (
+                <div className="fade" style={{ padding: "2px 14px 14px" }}>
+                  {r.cards.map((c) => (
+                    <div key={c.id} style={{ marginTop: 12 }}>
+                      <div className={"eyebrow"}>{STAGE_META[c.stage].name}</div>
+                      <p className="body" style={{ fontSize: 14.5, marginTop: 5, whiteSpace: "pre-wrap" }}>{c.answer}</p>
+                    </div>
+                  ))}
+                  {r.cards[2] && r.cards[2].note && (
+                    <p className="muted" style={{ marginTop: 12, whiteSpace: "pre-wrap" }}>{r.cards[2].note}</p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {shown.length > 240 && (
+        <p className="muted" style={{ marginTop: 14 }}>
+          Showing the first 240. Narrow it with the search box.
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────── PATH ─────────────── */
+
+/* ═══════════════════ LESSONS ═══════════════════
+
+   The old front door, demoted to what it should always have been: optional
+   reading. A unit teaches an idea and spars over it, which is a good way to
+   MEET something and a bad way to keep it. Keeping it is what the deck is for,
+   and the deck no longer waits for the path — every card is available on day
+   one whether or not you ever open a lesson.
+
+   Kept because the boss rounds are the only place in the app that asks you to
+   write a real answer and have it judged, and that is a skill the flashcards
+   cannot train.
+*/
+
+function Path({ prog, belt, open, go, back }) {
+  const idx = ALL_UNITS.findIndex((u) => !prog.done.includes(u.id));
+  const nextId = idx === -1 ? null : ALL_UNITS[idx].id;
+  const bagCount = Object.values(prog.bag || {}).reduce((a, b) => a + b, 0);
+
+  return (
+    <div className="wrap fade" style={{ paddingTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="icon-btn" onClick={back}>← home</button>
+        <span className="coin" style={{ marginLeft: "auto" }}><i />{prog.coins}</span>
+      </div>
+
+      <h1 style={{ fontSize: 27, marginTop: 18 }}>Lessons</h1>
+      <p className="muted" style={{ marginTop: 8 }}>
+        Optional. A unit teaches an idea and then spars over it — good for meeting
+        something for the first time, and for the written finishers, which are the
+        only place anything you say gets read back to you. The deck does the
+        remembering, and it doesn't wait for this.
+      </p>
+
+      <div className="tabs" style={{ marginTop: 16 }}>
         <button className="tab" onClick={() => go("shop")}>Kit{bagCount ? ` · ${bagCount}` : ""}</button>
         <button className="tab" onClick={() => go("science")}>How it's built</button>
       </div>
-
-      {prog.perks.length > 0 && (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-          {prog.perks.map((p) => {
-            const perk = PERKS.find((x) => x.id === p);
-            return <span key={p} className="pill" style={{ color: "var(--gold)", borderColor: "#4A3A22" }}>{perk.icon} {perk.name}</span>;
-          })}
-        </div>
-      )}
 
       {SECTIONS.map((s) => {
         const cleared = s.units.every((u) => prog.done.includes(u.id));
@@ -1462,125 +1622,6 @@ function Path({ prog, belt, open, go, toggleSound, reset, saveState, restore, se
           </div>
         );
       })}
-
-      {stats.length > 0 && (
-        <div className="card" style={{ marginTop: 24 }}>
-          <div className="eyebrow">Where you actually stand</div>
-          <p className="muted" style={{ marginTop: 8 }}>
-            Accuracy across everything you've been asked more than once, not how far you've walked.
-            Anything under 70% is worth another pass.
-          </p>
-          <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 9 }}>
-            {stats.map(({ sec, accuracy, due: d, total }) => (
-              <div key={sec.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span className="mono" style={{ fontSize: 10, color: sec.foe.hue, width: 18 }}>
-                  {String(sec.n).padStart(2, "0")}
-                </span>
-                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, overflow: "hidden",
-                               textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sec.title}</span>
-                <span className="strbar"><i style={{
-                  width: (accuracy === null ? 0 : accuracy * 100) + "%",
-                  background: accuracy === null ? "var(--line)"
-                    : accuracy >= .85 ? "var(--good)" : accuracy >= .7 ? "var(--gold)" : "var(--bad)" }} /></span>
-                <span className="mono" style={{ fontSize: 11, width: 34, textAlign: "right",
-                  color: accuracy === null ? "var(--muted)"
-                    : accuracy >= .85 ? "var(--good)" : accuracy >= .7 ? "var(--gold)" : "var(--bad)" }}>
-                  {accuracy === null ? "—" : Math.round(accuracy * 100) + "%"}
-                </span>
-                {d > 0 && <span className="pill" style={{ flex: "none", fontSize: 10 }}>{d}</span>}
-              </div>
-            ))}
-          </div>
-          <p className="muted" style={{ marginTop: 12 }}>{today.plan.reason}</p>
-          {due > 0 && (
-            <button className="use" style={{ marginTop: 12 }} onClick={() => go("sharpen")}>
-              Sharpen {due} today →
-            </button>
-          )}
-
-          {/* The corpus is over a thousand cards. How long that takes is the
-              learner's decision, not the app's -- but the throttle is not
-              negotiable at any pace, because it is what makes the size
-              survivable rather than what limits it. */}
-          <div className="eyebrow" style={{ marginTop: 20 }}>Daily pace</div>
-          <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
-            {PACES.map((p) => (
-              <button key={p.id} className={"use" + (p.id === pace.id ? " on" : "")}
-                style={{ flex: 1, padding: "9px 4px", fontSize: 12,
-                         borderColor: p.id === pace.id ? "var(--gold)" : "var(--line)",
-                         color: p.id === pace.id ? "var(--gold)" : "var(--muted)" }}
-                onClick={() => setPace(p.id)}>{p.name}</button>
-            ))}
-          </div>
-          <p className="muted" style={{ marginTop: 8 }}>
-            {pace.blurb} You've met {met} of the {openCards} cards open to you so far,
-            out of {TOTAL_CARDS} in the whole corpus — the rest unlock as you clear
-            units and climb the ladder on what you already have.
-          </p>
-        </div>
-      )}
-
-      <p className="muted" style={{ marginTop: 34 }}>
-        Scripture from the World English Bible, which is public domain. Chesterton, MacDonald, Pascal, Augustine, Aquinas, Anselm, Hume, Nietzsche and Dostoevsky are public domain and quoted verbatim. Authors still in copyright — Lewis, Nagel, Ehrman, Bonhoeffer, Volf, Walton and the rest — are held to a single attributed sentence each. Where an attribution is traditional rather than sourced, the entry says so.
-      </p>
-
-      <div className="card" style={{ marginTop: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span className="eyebrow">Build 9 · {ALL_UNITS.length} units · {TOTAL_CARDS} cards</span>
-          <span className="pill" style={{
-            marginLeft: "auto",
-            color: saveState === "ok" ? "var(--good)" : saveState === "off" ? "var(--bad)" : "var(--muted)",
-            borderColor: saveState === "ok" ? "#2F5C43" : saveState === "off" ? "#4A2422" : "var(--line)",
-          }}>
-            {saveState === "ok" ? "saving ✓" : saveState === "off" ? "not saving" : saveState === "saving" ? "saving…" : "checking"}
-          </span>
-        </div>
-        {saveState === "off" && (
-          <p className="body" style={{ marginTop: 10, fontSize: 14, color: "#E0A0A0" }}>
-            This window can't write to storage. Copy your backup code below and keep it somewhere — you can paste it back any time.
-          </p>
-        )}
-        <div style={{ marginTop: 12 }}>
-          <button className="icon-btn" onClick={() => setBackup(!backup)}>
-            {backup ? "hide backup" : "back up / restore →"}
-          </button>
-        </div>
-        {backup && (
-          <div className="fade" style={{ marginTop: 12 }}>
-            <div className="eyebrow">Your save code</div>
-            <textarea readOnly value={encode(prog)} style={{ minHeight: 92, fontSize: 11, marginTop: 6 }}
-              onFocus={(e) => e.target.select()} />
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-              <button className="use" onClick={() => {
-                const code = encode(prog);
-                if (navigator.clipboard) navigator.clipboard.writeText(code).then(() => setCopied(true), () => setCopied(false));
-                setCopied(true); setTimeout(() => setCopied(false), 1800);
-              }}>{copied ? "copied ✓" : "copy code"}</button>
-            </div>
-            <div className="eyebrow" style={{ marginTop: 16 }}>Paste a code to restore</div>
-            <textarea value={paste} onChange={(e) => setPaste(e.target.value)} placeholder="DOJANG1:…"
-              style={{ minHeight: 82, fontSize: 11, marginTop: 6 }} />
-            <button className="use" style={{ marginTop: 8 }} disabled={!decode(paste)}
-              onClick={() => { const o = decode(paste); if (o) { restore(o); setPaste(""); setBackup(false); } }}>
-              {paste && !decode(paste) ? "that code isn't readable" : "restore this save"}
-            </button>
-          </div>
-        )}
-        <p className="muted" style={{ marginTop: 10 }}>
-          Storage is sandboxed per artifact, so a brand-new file starts empty even though the save slot name is the same. The backup code moves your progress between them.
-        </p>
-        {confirm ? (
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <button className="use" onClick={() => { setConfirm(false); reset(); }} style={{ borderColor: "#4A2422", color: "var(--bad)" }}>Erase everything</button>
-            <button className="use" onClick={() => setConfirm(false)}>Keep it</button>
-          </div>
-        ) : (
-          <button className="icon-btn" style={{ marginTop: 12 }} onClick={() => setConfirm(true)}>reset progress</button>
-        )}
-      </div>
-
-      <InstallCard />
-      <JudgePanel />
     </div>
   );
 }
@@ -1831,23 +1872,11 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
     setTimeout(() => setDmg((d) => d.filter((x) => x.id !== id)), 950);
   };
 
-  /* Every graded answer updates that item's schedule. Without this the app
-     asks a thing once and never again, which is what CURRICULUM.md always
-     claimed it did not do. Collected during the round and written once at the
-     end, so a quit mid-unit doesn't half-record a session. */
-  const graded = useRef({});
-  const record = (id, ok) => {
-    if (!id) return;
-    const base = graded.current[id] || (prog.srs || {})[id] || blank();
-    graded.current[id] = grade(base, ok);
-  };
-
+  /* A battle answer moves HP and nothing else. Scheduling lives entirely in the
+     deck now, which is the honest division: a lesson is where you meet an idea,
+     the deck is where you keep it. Two systems writing to one store is how the
+     old app ended up with review records nothing could show you. */
   const resolve = (ok) => {
-    /* Only the free-recall stage of a verse is graded. The three cued stages
-       are scaffolding on the way there, not a test of whether it is known. */
-    if (beat.t === "choice") record(beat.qid, ok);
-    else if (beat.t === "verse" && beat.stage === 3) record(verseId(beat.vid), ok);
-
     const stage = document.querySelector(".dj .stage");
     const box = stage ? stage.getBoundingClientRect() : null;
     const fx = box ? { x: box.right - box.width * .28, y: box.top + box.height * .48 } : { x: window.innerWidth * .72, y: 190 };
@@ -1908,7 +1937,7 @@ function Session({ unit, belt, sound, prog, onQuit, onFinish }) {
   if (beat.t === "done") {
     const coins = Math.round(xp / 4) + (foeHp <= 0 ? (unit.boss ? 40 : 20) : 0) + (misses === 0 ? 15 : 0);
     return <Done unit={unit} xp={xp} coins={coins} clean={misses === 0} cleared={foeHp <= 0}
-      heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent, graded.current)} />;
+      heroHp={heroHp} play={play} onFinish={(g, c) => onFinish(g, c, coins, spent)} />;
   }
 
   const hpColor = heroHp > 55 ? "var(--good)" : heroHp > 25 ? "var(--gold)" : "var(--bad)";
