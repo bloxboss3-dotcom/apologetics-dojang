@@ -1,8 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
-import { dailySession, sectionStats, PACES, paceOf, TOTAL_CARDS, dayStamp } from "./data/review.js";
-import { allCards, STAGE_META, ITEM_COUNT } from "./data/cards.js";
+import { dailySession, sectionStats, PACES, paceOf, TOTAL_CARDS, dayStamp, grade } from "./data/review.js";
+import { allCards, STAGE_META, ITEM_COUNT, cardId } from "./data/cards.js";
 import Study from "./Study.jsx";
+import Encounter from "./Encounter.jsx";
+import { ENCOUNTERS, ENCOUNTER_COUNT } from "./data/encounters.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
@@ -302,6 +304,44 @@ const CSS = `
   background:none; border:none; color:var(--paper); cursor:pointer; text-align:left; }
 .dj .browsehead:hover { background:var(--panel2); }
 
+/* ═══════════════════ THE ENCOUNTER ═══════════════════
+   A scene, not a screen. The other person's line is set large and in the serif
+   with a coloured rule, so it reads as somebody speaking rather than as a
+   prompt — that difference is doing real work, because narrative is recalled
+   about twice as well as the same content stated flat. */
+.dj .scene { margin-top:20px; border-left:3px solid var(--gold); padding:2px 0 2px 16px; }
+.dj .said { font-family:Fraunces,Georgia,serif; font-size:clamp(19px,5vw,23px); line-height:1.42;
+  margin-top:9px; }
+.dj .yousaid { font-family:Fraunces,Georgia,serif; font-size:17px; line-height:1.45;
+  margin-top:7px; color:var(--muted); }
+
+/* A reply is a full-width block of prose, not an A/B/C option. They are meant
+   to be read as things a person would actually say. */
+.dj .movebtn { width:100%; text-align:left; padding:14px 15px; border-radius:14px;
+  background:var(--panel); border:1px solid var(--line); color:var(--paper);
+  font:400 15px Fraunces,Georgia,serif; line-height:1.45; cursor:pointer;
+  transition:border-color .13s, transform .09s; }
+.dj .movebtn:hover { border-color:var(--gold); }
+.dj .movebtn:active { transform:translateY(2px); }
+
+/* What happened. The tone colour is on the border rather than the text, so a
+   costly-but-correct answer reads as a consequence rather than a scolding. */
+.dj .lands { margin-top:18px; padding:15px 16px; border-radius:15px;
+  background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--tc); }
+.dj .alt { padding:13px 14px; border-radius:13px; background:#0F141B;
+  border:1px solid var(--line); border-left:3px solid var(--tc); opacity:.85; }
+
+.dj .keepline { margin-top:20px; padding:16px; border-radius:15px;
+  background:linear-gradient(180deg,#1A222E 0%,#141B25 100%); border:1px solid #4A3A22; }
+
+/* The encounter's slot on the home screen. Deliberately a different shape from
+   the study card so the two never read as the same button. */
+.dj .enccard { margin-top:12px; padding:18px; border-radius:18px; background:var(--panel);
+  border:1px solid var(--line); border-left:3px solid var(--gold); cursor:pointer;
+  text-align:left; width:100%; color:var(--paper); transition:border-color .13s; }
+.dj .enccard:hover { border-color:var(--gold); }
+
+
 
 .dj .dock { position:sticky; bottom:0; margin:28px -18px 0; padding:14px 18px calc(14px + env(safe-area-inset-bottom)); background:linear-gradient(to top,var(--ink) 0%,var(--ink) 68%,rgba(10,13,18,.82) 100%); z-index:15; }
 .dj .dock-in { max-width:620px; margin:0 auto; }
@@ -454,6 +494,20 @@ const LEGACY = ["dojang:v4", "dojang:v3", "dojang:progress:v1"];
 const wordsOf = (s) => s.split(/\s+/).filter(Boolean);
 const norm = (s) => s.toLowerCase().replace(/[^a-z' ]/g, "").replace(/\s+/g, " ").trim();
 const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[0]).map((p) => p[1]);
+/* The next encounter you have not taken. In order, so the ground rules land
+   before the resurrection — the deck can interleave freely afterwards, but
+   first contact with an idea benefits from an order somebody chose. */
+export const nextEncounter = (prog) =>
+  ENCOUNTERS.find((e) => !(prog.encounters || []).includes(e.id)) || null;
+
+/* Truncate on a word, never mid-word. "You k…" reads as a rendering bug rather
+   than as an excerpt. */
+const clipWords = (s, n) => {
+  if (s.length <= n) return s;
+  const cut = s.slice(0, n);
+  return cut.slice(0, cut.lastIndexOf(" ")).replace(/[,;:.]$/, "") + "…";
+};
+
 const beltFor = (xp) => BELTS.slice().reverse().find((b) => xp >= b.at) || BELTS[0];
 const today = () => new Date().toISOString().slice(0, 10);
 const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -887,6 +941,27 @@ export default function App() {
     if (after.name !== before.name) setBeltUp(after);
   };
 
+  /* Finishing an encounter. It marks the anchored item's UNDERSTAND card as
+     met, because that is exactly what the encounter just did — and better than
+     the card did it. The deck picks the item up at "memorise" from here, so you
+     never meet a line cold, and the boring definition card is skipped for
+     anything an encounter has already taught. */
+  const takeEncounter = (enc) => {
+    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
+    const id = cardId(enc.anchor, "understand");
+    const before = beltFor(prog.xp), after = beltFor(prog.xp + 10);
+    save({
+      ...prog,
+      encounters: [...(prog.encounters || []), enc.id],
+      srs: { ...(prog.srs || {}), [id]: grade((prog.srs || {})[id], 2) },
+      xp: prog.xp + 10, coins: prog.coins + 4,
+      streak, last: today(),
+    });
+    setScreen("home");
+    if (after.name !== before.name) setBeltUp(after);
+  };
+
   /* Banking a study session. One write: the schedule, the day's earnings, and
      the streak. XP is per card held rather than per session, so a long session
      is worth more than a short one, and Hard still pays — struggling through a
@@ -955,6 +1030,9 @@ export default function App() {
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("lessons")} />
       ) : screen === "study" ? (
         <Study prog={prog} bank={bank} back={() => setScreen("home")} />
+      ) : screen === "encounter" && nextEncounter(prog) ? (
+        <Encounter enc={nextEncounter(prog)} back={() => setScreen("home")}
+          onDone={takeEncounter} />
       ) : screen === "browse" ? (
         <Browse prog={prog} back={() => setScreen("home")} />
       ) : screen === "packs" ? (
@@ -1287,6 +1365,7 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
 
   const today = dailySession(prog);
   const count = today.items.length;
+  const enc = nextEncounter(prog);
   const decks = sectionStats(prog);
   const pace = paceOf(prog);
   const met = decks.reduce((a, d) => a + d.met, 0);
@@ -1301,6 +1380,26 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
         <span className="coin bump" key={prog.coins} style={{ marginLeft: "auto" }}><i />{prog.coins}</span>
         <button className="icon-btn" onClick={toggleSound}>{prog.sound ? "♪" : "✕♪"}</button>
       </div>
+
+      {/* The encounter sits above the study card on purpose. A flashcard is a
+          retention instrument and a poor way to meet something for the first
+          time; the scene is where an idea gets acquired and the deck is where
+          it gets kept. Leading with the deck would be putting the filing
+          cabinet in front of the conversation. */}
+      {enc ? (
+        <button className="enccard" onClick={() => go("encounter")}>
+          <div className="eyebrow" style={{ color: "var(--gold)" }}>A conversation is waiting</div>
+          <p className="said" style={{ fontSize: 17, marginTop: 8 }}>“{clipWords(enc.says, 116)}”</p>
+          <div className="eyebrow" style={{ marginTop: 10 }}>{enc.where} · answer it before you're told →</div>
+        </button>
+      ) : (
+        <div className="enccard" style={{ cursor: "default" }}>
+          <div className="eyebrow">All {ENCOUNTER_COUNT} conversations taken</div>
+          <p className="muted" style={{ marginTop: 7 }}>
+            Every one of them is in your deck now. More get written; the deck keeps what you have.
+          </p>
+        </div>
+      )}
 
       {/* The one thing on this screen that matters. Everything above it is
           identity and everything below it is settings. */}

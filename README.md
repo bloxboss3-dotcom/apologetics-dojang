@@ -1,6 +1,8 @@
 # Apologetics Dojang
 
-A flashcard app for apologetics. 430 things worth knowing — verses, quotes, arguments, distinctions, objections, evidence — each met three times: **understand it, memorise it, recall it cold.** Every card is answered out loud before anything is revealed, and you grade yourself. 1,290 cards on a spaced-repetition schedule.
+An apologetics trainer in two halves. **Encounters** are where you meet an idea: somebody says something to you, you answer before you're told anything, and you find out what your answer cost — then the tool arrives. **The deck** is where you keep it: spaced flashcards, answered out loud.
+
+The split is deliberate. A flashcard is a retention instrument and a poor way to meet something for the first time; attempting before instruction beats instruction-first on conceptual understanding, and narrative is recalled about twice as well as the same content stated flat. 430 things worth knowing — verses, quotes, arguments, distinctions, objections, evidence — each met three times: **understand it, memorise it, recall it cold.** Every card is answered out loud before anything is revealed, and you grade yourself. 1,290 cards on a spaced-repetition schedule.
 
 There are also thirty-nine lessons with a battle system and a written finisher, but they are optional now. The deck is the app.
 
@@ -49,10 +51,12 @@ Node 18 or newer.
 src/
   main.jsx           mount point — you'll never touch this
   App.jsx            shell: home, deck browser, lessons, battle, shop, effects
+  Encounter.jsx      the scene — line, your move, what happened, the tool
   Study.jsx          the card — cue, say it, reveal, grade
   speech.js          optional say-it-into-the-mic check (Web Speech API)
   data/
     course.js        ← the curriculum: sections, units, teach screens, checks, bosses
+    encounters.js    28 scenes — the line, three replies, what each one costs, the tool
     cards.js         the card model — three stages per item, and the first-letter scaffold
     corpus.js        types, and the flattening the deck is built from
     corpus.arguments.js     35 arguments, premises ordered, with what each delivers
