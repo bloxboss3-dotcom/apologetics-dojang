@@ -317,3 +317,68 @@ Every word of the corpus, the spacing algorithm, the interleaving, the daily
 throttle, the streak, belts, coins and packs — and the lessons themselves, as
 optional reading, because the boss rounds are the only place in the app where
 something you wrote gets read back to you.
+
+---
+
+## 10. The missing layer: acquisition
+
+Second real user report, and it named something the first one didn't:
+
+> "I'm not learning it, something is missing… I like the ideas but it's not
+> being introduced in an interesting way maybe? I can't pinpoint it, but I
+> don't like it."
+
+The flashcard rebuild fixed the *drill*. It did not fix **first contact**, and
+first contact was where the problem actually was.
+
+### The diagnosis
+
+**A flashcard is a retention instrument, not an acquisition instrument.** It is
+superb at keeping something you already understand and useless at making you
+want it. Every card handed you the question and the answer in the same breath,
+in the same flat register. That is exposition, and on four separate measures it
+is the worst available choice for meeting an idea:
+
+| Finding | Effect | What the app was doing |
+|---|---|---|
+| Narrative vs. expository text (Mar et al. 2021 — 75 samples, 33,000 people) | read ~2× faster, recalled ~2× better | every `use` field was an encyclopedia entry |
+| Problem-solving before instruction (Sinha & Kapur 2021 — 166 comparisons, 12,000+) | d = 0.36 on conceptual understanding and transfer | you were always told before you tried |
+| Pretesting / errorful generation (Kornell, Hays & Bjork 2009) | works even when the guess is wrong, given feedback | there was never a guess |
+| Curiosity states (Gruber, Gelman & Ranganath 2014) | raise hippocampal encoding, and memory for *incidental* material | no curiosity gap was ever opened |
+
+And on motivation: the app's entire drive was streak, XP, coins, packs. SDT
+research is clear that streak mechanics produce *introjected* regulation —
+guilt — which buys short-term compliance and long-term abandonment. Autonomy
+and competence come from choosing what to work on and feeling a skill grow in
+something you care about. A queue of twelve cards chosen for you supplies
+neither.
+
+**Underneath all four: the content is entirely about conversations, and none of
+the interaction was a conversation.**
+
+### The fix: Encounters
+
+A scene, in four beats, and you move *before* you are taught.
+
+1. **The line.** Somebody says something to you — in their voice, in a place,
+   with a relationship attached. Your cousin at a wedding. A nurse at the end of
+   a shift. Your twelve-year-old, home from a science lesson.
+2. **Your move.** Three replies, none marked right. You commit.
+3. **What happens.** They answer the reply you actually made. Then you can see
+   what the other two would have done.
+4. **The tool.** *Now* the idea arrives, named — landing on a question you have
+   rather than one you were handed.
+
+**No move is a clean win, because there usually isn't one.** The three outcomes
+are `hold` (you kept the conversation and said something true), `slip` (you gave
+away something you didn't have to), and — the important one — `cost`: **you were
+right and it cost you the room.** Naming the fallacy in Latin at a wedding is
+correct and loses your cousin. A quiz can never teach that, because a quiz has
+no room to lose.
+
+Each encounter is anchored to an item already in the corpus, so finishing one
+hands that item straight to the spaced deck at the *memorise* stage — the
+definition card is skipped, because the scene already did that job and did it
+better.
+
+28 encounters at launch, four per section.
