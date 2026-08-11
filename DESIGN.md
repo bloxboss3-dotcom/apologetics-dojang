@@ -382,3 +382,71 @@ definition card is skipped, because the scene already did that job and did it
 better.
 
 28 encounters at launch, four per section.
+
+---
+
+## 11. The moment of correct
+
+Third report: *"still not gamified enough or gives enough dopamine — my Hangul
+app has been the most successful in keeping me engaged and actually working."*
+
+That last clause is the most useful sentence in this whole document, because it
+names a working control. The same person, the same discipline of daily study,
+one app they open every day and one they do not. So the question stopped being
+"what does the literature say about motivation" and became "what does that app
+do that this one doesn't."
+
+Reading it, the answer was immediate and slightly humiliating.
+
+### The diagnosis
+
+**Self-grading has no moment of correct.** You read the answer, you quietly
+decide, you tap a small grey button. There is no instant where the app tells
+you that you got it. In making the drills honest, every reward signal in the
+loop had been deleted, and what was left was a chore with good typography.
+
+Feature by feature against the app that actually works:
+
+| Hangul (used daily) | Dojang (not) |
+|---|---|
+| answers auto-graded — a real correct/incorrect instant | self-graded; no correct instant exists |
+| combo counter, four tiers, each escalating the payoff | none |
+| sound transposing up a step per combo tier | sound existed, wired only to the demoted battle |
+| rings, bursts, rays, bloom, flash, edge glow, fireworks | FX primitives existed, unused by the study loop |
+| ~40 commentary lines, chosen by what just happened | two static strings |
+| coins landing per answer | one lump sum at the end |
+| rank on the session | none |
+
+### The fix
+
+**Auto-grade from the voice.** Saying it out loud was already the right way to
+practise, which makes the microphone an honest grader rather than a gimmick:
+
+- **Verbatim cards** (verses, quotes, argument premises) match word for word,
+  ≥85% correct, ≥60% "close", below that a miss.
+- **Prose cards** (distinctions, objections, evidence) have no correct wording,
+  so they score on **key terms** — pull the content words out of the model
+  answer and check how many you actually said. Tolerates paraphrase, still
+  knows the difference between an answer and a shrug. Thresholds far more
+  generous: ≥50% correct, ≥28% close.
+
+Restricting the mic to verbatim text was the first version's mistake — it meant
+the first session anybody plays, twelve *understand* cards, contained no
+auto-grade anywhere.
+
+Then everything the working app does: combo with four tiers, escalating FX and
+a triad that climbs a whole step per tier, coins landing per card, commentary
+picked from what actually just happened (comeback, nemesis, fast, produced-cold),
+and a rank on the session.
+
+### Three rules it lives under, taken from the working app's own notes
+
+1. **It never lies to the scheduler.** 70% is graded Hard and the card comes
+   back sooner. A celebration that fooled the schedule would be buying dopamine
+   with worse recall.
+2. **You can always overrule it.** One tap, next to Next, never buried. And an
+   empty transcript is not a wrong answer — Chromium exposes SpeechRecognition
+   on machines with no working microphone, so silence falls through to the
+   self-grade instead of handing out a miss nobody earned.
+3. **A miss is never punished.** Soft low tone, small shake, a kind sentence,
+   and the card comes back. No hearts, no lives, no timers, nothing red.
