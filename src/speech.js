@@ -118,3 +118,65 @@ export function createRecogniser({ onPartial, onFinal, onError, onEnd }) {
     abort: () => { try { r.abort(); } catch { /* nothing to abort */ } },
   };
 }
+
+/* ═══════════════════ SCORING PROSE ═══════════════════
+
+   Verbatim cards can be matched word for word. Most cards cannot: "what is the
+   distinction between valid and sound" has no single correct wording, and
+   marking a good answer wrong for using different words would be worse than
+   not scoring it at all.
+
+   But leaving those cards self-graded meant the first session anybody plays is
+   twelve cards with no correct/incorrect moment in it — which is the whole
+   complaint this build exists to answer.
+
+   So prose is scored on KEY TERMS instead. Pull the content words out of the
+   model answer, and check how many of them you actually said. That tolerates
+   paraphrase, which is the point, and it still knows the difference between an
+   answer and a shrug. Thresholds are deliberately generous and the verdict is
+   always overridable in one tap.
+*/
+
+const STOP = new Set(("the a an and or but if of to in on at by for with from as is are was were be been being " +
+  "it its this that these those there here they them their you your we our us he she his her him not no nor so " +
+  "than then when what which who whom whose how why can could would should will shall may might must do does did " +
+  "have has had having own same very just only also more most other some such into over under about after before " +
+  "because while where both each few many much any all one two three thing things something anything nothing " +
+  "make makes made take takes taken get gets got give gives given say says said sayed way ways").split(" "));
+
+/* Four letters is the cut-off, with a short list of exceptions that carry real
+   weight in this material and would otherwise be dropped for being small. */
+const KEEP_SHORT = new Set(["god", "sin", "law", "evil", "kalam", "hume", "ends", "aim", "why", "who"]);
+
+export function keyTerms(text) {
+  const seen = new Set();
+  const out = [];
+  for (const w of words(text)) {
+    const k = fold(w);
+    if (STOP.has(k)) continue;
+    if (k.length < 4 && !KEEP_SHORT.has(k)) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(k);
+  }
+  return out;
+}
+
+/* Prefix matching on the first four characters, so "obligation" counts for
+   "obligations" and "explains" for "explanation". Crude, and crude in the
+   forgiving direction, which is the correct direction for a self-study aid. */
+const stem = (w) => w.slice(0, Math.max(4, w.length - 3));
+
+export function scoreKeywords(said, answer) {
+  const keys = keyTerms(answer);
+  if (!keys.length) return null;
+  const saidStems = new Set(words(said).map(fold).map(stem));
+  const hit = new Set();
+  for (const k of keys) if (saidStems.has(stem(k))) hit.add(k);
+  return {
+    pct: hit.size / keys.length,
+    got: hit.size,
+    total: keys.length,
+    marks: keys.map((w) => ({ w, ok: hit.has(w) })),
+  };
+}

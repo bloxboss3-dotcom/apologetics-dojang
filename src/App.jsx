@@ -261,6 +261,48 @@ const CSS = `
 .dj .pill.stage-memorise   { color:var(--gold); border-color:#4A3A22; }
 .dj .pill.stage-recall     { color:var(--good); border-color:#2A4A38; }
 
+/* ── the session HUD ──
+   Combo and coins are on screen for the whole session. Both were invisible
+   until the end before, which is the same as not existing: a number that only
+   appears once the work is finished cannot pull you through the work. */
+.dj .combochip { font:700 12px 'JetBrains Mono',monospace; padding:4px 10px; border-radius:999px;
+  border:1px solid var(--line); color:var(--muted); background:var(--panel);
+  animation:comboPop .36s cubic-bezier(.2,1.7,.35,1); }
+.dj .combochip.t1 { border-color:#2A4A38; color:var(--good); background:rgba(87,196,138,.12); }
+.dj .combochip.t2 { border-color:#4A3A22; color:var(--gold); background:rgba(224,171,73,.14); }
+.dj .combochip.t3 { border-color:var(--gold); color:var(--gold); background:rgba(224,171,73,.2); }
+.dj .combochip.t4 { border-color:#D9663C; color:#FFD9A0; background:rgba(217,102,60,.24);
+  animation:comboPop .36s cubic-bezier(.2,1.7,.35,1), comboGlow 1.1s ease-in-out infinite alternate; }
+@keyframes comboPop { 0% { transform:scale(.45); opacity:0 } 100% { transform:scale(1); opacity:1 } }
+@keyframes comboGlow { to { box-shadow:0 0 18px 2px rgba(217,102,60,.65) } }
+
+/* The verdict. Large, immediate, and the first thing on the screen after you
+   stop speaking — this is the moment the whole rebuild exists to create. */
+.dj .verdict { font-size:clamp(30px,8vw,40px); line-height:1.05; margin-top:20px;
+  animation:verdictIn .4s cubic-bezier(.2,1.5,.35,1) both; }
+@keyframes verdictIn { from { opacity:0; transform:scale(.7) translateY(10px) } to { opacity:1; transform:none } }
+
+/* Listening state on the primary button. Not red-as-danger — red-as-live,
+   the way a record light is. */
+.dj .btn-live { background:#C44A42; color:#FFF1EE; animation:liveThrob 1.2s ease-in-out infinite; }
+@keyframes liveThrob { 0%,100% { box-shadow:0 4px 0 rgba(0,0,0,.45) } 50% { box-shadow:0 4px 0 rgba(0,0,0,.45), 0 0 26px 2px rgba(196,74,66,.6) } }
+
+.dj .rankrow { display:flex; align-items:center; gap:16px; margin-top:14px; }
+/* The key terms a prose answer was scored on. Chips rather than running text,
+   because the point is to see at a glance which ideas you actually said. */
+.dj .termrow { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+.dj .term { font:600 11.5px 'JetBrains Mono',monospace; padding:4px 9px; border-radius:999px;
+  border:1px solid var(--line); }
+.dj .term.hit { color:var(--good); border-color:#2A4A38; background:rgba(87,196,138,.12); }
+.dj .term.miss { color:#5A6577; }
+
+.dj .rankletter { flex:none; width:74px; height:74px; border-radius:20px; border:2.5px solid;
+  display:flex; align-items:center; justify-content:center;
+  font:700 40px Fraunces,Georgia,serif; background:var(--panel);
+  animation:rankIn .5s cubic-bezier(.2,1.6,.35,1) both; }
+@keyframes rankIn { from { opacity:0; transform:scale(.5) rotate(-10deg) } to { opacity:1; transform:none } }
+
+
 @keyframes rise { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:none; } }
 
 /* ═══════════════════ HOME ═══════════════════ */
@@ -966,11 +1008,15 @@ export default function App() {
      the streak. XP is per card held rather than per session, so a long session
      is worth more than a short one, and Hard still pays — struggling through a
      card you nearly lost is the most valuable rep in the deck. */
-  const bank = (results, tally) => {
+  const bank = (results, tally, earned = 0) => {
     const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
     const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
     const gained = (tally.good + tally.easy) * 3 + tally.hard * 2;
-    const coins = Math.round((tally.good + tally.easy + tally.hard) / 3);
+    /* Coins are counted DURING the session now, one to five per card depending
+       on the combo tier, and shown landing as you earn them. A lump sum handed
+       over at the end is arithmetic; a coin that drops when you get one right
+       is a reward. */
+    const coins = earned;
     const before = beltFor(prog.xp), after = beltFor(prog.xp + gained);
     /* Which of these had never been seen before. The daily new-card allowance
        is a budget for the DAY, not for the session — without this count you

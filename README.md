@@ -1,6 +1,6 @@
 # Apologetics Dojang
 
-An apologetics trainer in two halves. **Encounters** are where you meet an idea: somebody says something to you, you answer before you're told anything, and you find out what your answer cost — then the tool arrives. **The deck** is where you keep it: spaced flashcards, answered out loud.
+An apologetics trainer in two halves. **Encounters** are where you meet an idea: somebody says something to you, you answer before you're told anything, and you find out what your answer cost — then the tool arrives. **The deck** is where you keep it: spaced flashcards you answer out loud, auto-graded from your voice, with a combo counter that escalates as you run.
 
 The split is deliberate. A flashcard is a retention instrument and a poor way to meet something for the first time; attempting before instruction beats instruction-first on conceptual understanding, and narrative is recalled about twice as well as the same content stated flat. 430 things worth knowing — verses, quotes, arguments, distinctions, objections, evidence — each met three times: **understand it, memorise it, recall it cold.** Every card is answered out loud before anything is revealed, and you grade yourself. 1,290 cards on a spaced-repetition schedule.
 
@@ -52,8 +52,9 @@ src/
   main.jsx           mount point — you'll never touch this
   App.jsx            shell: home, deck browser, lessons, battle, shop, effects
   Encounter.jsx      the scene — line, your move, what happened, the tool
-  Study.jsx          the card — cue, say it, reveal, grade
-  speech.js          optional say-it-into-the-mic check (Web Speech API)
+  Study.jsx          the card — cue, say it, and it tells you
+  speech.js          word-for-word and key-term scoring off the microphone
+  juice.js           combos, particles, sound, commentary, ranks
   data/
     course.js        ← the curriculum: sections, units, teach screens, checks, bosses
     encounters.js    28 scenes — the line, three replies, what each one costs, the tool
