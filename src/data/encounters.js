@@ -35,6 +35,11 @@
    Every encounter is anchored to an item already in the corpus, so finishing
    one hands that item to the spaced deck and you never meet it cold.
 
+   ── model ──
+   The mental model behind the question, where there is one. Understanding
+   comes before performing: the beats teach you to say three things, and the
+   model is what lets you generate them against an objection nobody scripted.
+
    ── beats ──
    Three lines that build the answer, and the shape is fixed on purpose:
    CONCEDE what is true, TURN to what survives, name the LIMIT of your own
@@ -68,7 +73,8 @@ export const ENCOUNTERS = [
   /* ─────────── §1 ground rules ─────────── */
 
   {
-    id: "e-upbringing", sec: 1, anchor: "o-upbringing",
+    id: "e-upbringing",
+    model: "m-genetic", sec: 1, anchor: "o-upbringing",
     where: "Your cousin, on the porch at a family wedding",
     says: "Come on. If you'd been born in Karachi you'd be defending Islam right now, with exactly the same certainty. You know that's true.",
     moves: [
@@ -122,7 +128,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-cant-prove", sec: 1, anchor: "o-cant-prove",
+    id: "e-cant-prove",
+    model: "m-proof-evidence", sec: 1, anchor: "o-cant-prove",
     where: "Your brother-in-law, halfway through the second beer",
     says: "Every single thing you've said ends in 'probably' or 'best explanation'. You can't actually prove any of it. So just admit you don't know.",
     moves: [
@@ -178,7 +185,8 @@ export const ENCOUNTERS = [
   /* ─────────── §2 what we mean by God ─────────── */
 
   {
-    id: "e-who-made-god", sec: 2, anchor: "o-who-made-god",
+    id: "e-who-made-god",
+    model: "m-who-made-god", sec: 2, anchor: "o-who-made-god",
     where: "Your fourteen-year-old nephew, genuinely asking",
     says: "But if everything has to have a cause, then who made God? And if God doesn't need one, why can't the universe just not need one?",
     moves: [
@@ -205,7 +213,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-euthyphro", sec: 2, anchor: "o-euthyphro",
+    id: "e-euthyphro",
+    model: "m-euthyphro", sec: 2, anchor: "o-euthyphro",
     where: "A philosophy student, in a seminar you didn't expect to be in",
     says: "Is a thing good because God commands it, or does God command it because it's good? Either morality's arbitrary, or it's above him and he's not ultimate.",
     moves: [
@@ -259,7 +268,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-stone", sec: 2, anchor: "o-stone",
+    id: "e-stone",
+    model: "m-valid-sound", sec: 2, anchor: "o-stone",
     where: "A teenager at youth group, delighted with himself",
     says: "Can God make a rock so heavy he can't lift it? Either way he's not all-powerful. Checkmate.",
     moves: [
@@ -288,7 +298,8 @@ export const ENCOUNTERS = [
   /* ─────────── §3 reasons to think he's there ─────────── */
 
   {
-    id: "e-only-deism", sec: 3, anchor: "o-only-deism",
+    id: "e-only-deism",
+    model: "m-contingency", sec: 3, anchor: "o-only-deism",
     where: "A sharp friend, after you've spent twenty minutes on fine-tuning",
     says: "Alright — suppose I grant all of it. First cause, necessary being, designer of the constants. None of that is Jesus. You've argued for something almost nobody disbelieves in that strongly, and called it your religion.",
     moves: [
@@ -315,7 +326,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-morality-evolved", sec: 3, anchor: "o-morality-evolved",
+    id: "e-morality-evolved",
+    model: "m-ontology-epistemology", sec: 3, anchor: "o-morality-evolved",
     where: "Your sister, who studies biology",
     says: "Cooperation and fairness are in chimps. Kin altruism is maths. We didn't need a lawgiver — we needed to survive in groups. That's the whole story.",
     moves: [
@@ -342,7 +354,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-god-of-gaps", sec: 3, anchor: "o-god-of-gaps",
+    id: "e-god-of-gaps",
+    model: "m-god-of-gaps", sec: 3, anchor: "o-god-of-gaps",
     where: "A physics postgrad, patiently",
     says: "Every one of these points at something not yet explained and puts God there. Lightning was God. Disease was God. Planetary orbits were literally Newton's God. That gap has been closing for four hundred years.",
     moves: [
@@ -398,7 +411,8 @@ export const ENCOUNTERS = [
   /* ─────────── §4 reasons to doubt ─────────── */
 
   {
-    id: "e-evil", sec: 4, anchor: "o-evil",
+    id: "e-evil",
+    model: "m-evil-two-problems", sec: 4, anchor: "o-evil",
     where: "A nurse you know, at the end of a shift",
     says: "I watched an eight-year-old die of bone cancer over fourteen months. If anyone in that hospital could have stopped it and didn't, we'd call them a monster. So which is it — he couldn't, or he wouldn't?",
     moves: [
@@ -425,7 +439,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-hiddenness", sec: 4, anchor: "o-hiddenness",
+    id: "e-hiddenness",
+    model: "m-sceptical-theism", sec: 4, anchor: "o-hiddenness",
     where: "Someone who used to lead worship, five years later",
     says: "I looked. For years. I wanted it to be true more than you can imagine and there was nothing there. So don't tell me I was resisting.",
     moves: [
@@ -535,7 +550,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-canaan", sec: 5, anchor: "o-canaan",
+    id: "e-canaan",
+    model: "m-genre", sec: 5, anchor: "o-canaan",
     where: "A friend who's reading through the Bible for the first time",
     says: "I'm in Joshua. God tells them to kill every man, woman, child and animal in a city, and the text treats it as obedience. I don't know what to do with that.",
     moves: [
@@ -562,7 +578,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-telephone", sec: 5, anchor: "o-telephone",
+    id: "e-telephone",
+    model: "m-variants", sec: 5, anchor: "o-telephone",
     where: "A guy at the gym who heard it on a podcast",
     says: "It's the telephone game. Copies of copies of copies, translated a dozen times over two thousand years. Whatever it originally said, that's gone.",
     moves: [
@@ -618,7 +635,8 @@ export const ENCOUNTERS = [
   /* ─────────── §6 Jesus ─────────── */
 
   {
-    id: "e-legend", sec: 6, anchor: "o-legend",
+    id: "e-legend",
+    model: "m-telephone", sec: 6, anchor: "o-legend",
     where: "A history teacher, at a barbecue",
     says: "Mark ends with an empty tomb and no appearances. Then each later gospel adds more — guards, an earthquake, physical proofs, more witnesses. That's a legend growing in front of you, on the documentary record.",
     moves: [
@@ -672,7 +690,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-unfalsifiable", sec: 6, anchor: "o-unfalsifiable",
+    id: "e-unfalsifiable",
+    model: "m-prior-likelihood", sec: 6, anchor: "o-unfalsifiable",
     where: "A friend who has been patient with you for a long time",
     says: "Just tell me honestly — what would change your mind? If the answer is nothing, then all the historical stuff is decoration on a conclusion you'd hold anyway.",
     moves: [
@@ -699,7 +718,8 @@ export const ENCOUNTERS = [
   },
 
   {
-    id: "e-copied-myths", sec: 6, anchor: "o-copied-myths",
+    id: "e-copied-myths",
+    model: "m-prior-likelihood", sec: 6, anchor: "o-copied-myths",
     where: "A documentary your uncle is quoting at you",
     says: "Mithras, Osiris, Horus, Dionysus. Virgin birth, December 25th, twelve disciples, died and rose. They just assembled the standard package and called it history.",
     moves: [
@@ -728,7 +748,8 @@ export const ENCOUNTERS = [
   /* ─────────── §7 the conversation ─────────── */
 
   {
-    id: "e-hypocrites", sec: 7, anchor: "o-hypocrites",
+    id: "e-hypocrites",
+    model: "m-concede-first", sec: 7, anchor: "o-hypocrites",
     where: "Someone who grew up in it, and left",
     says: "I've met the people who make these arguments. They're not better than anyone else. Some of them are considerably worse. That's the data I actually have.",
     moves: [

@@ -1,6 +1,8 @@
 # Apologetics Dojang
 
-An apologetics trainer built around one number: **how many questions you can answer out loud.**
+An apologetics trainer built around two numbers: **ideas you understand**, and **questions you can answer out loud.**
+
+A **Model** is one idea, taught through two analogies from different corners of ordinary life — with the mapping laid out explicitly, the question *"what do these two have in common?"* asked before the answer is shown, the place the analogy breaks stated plainly, and three unseen cases to test whether the shape transferred. Comparing two analogous cases beats studying them separately by roughly 3× on transfer, which is why there are always two.
 
 An **Answer** is one question somebody might actually ask you, start to finish in about eight minutes — you try it cold before you're taught anything, learn the move, build the reply in three beats (concede, turn, limit), then say the whole thing with no scaffold. Pass and it joins your list. At the end you see your first attempt beside your last one, in your own words.
 
@@ -55,12 +57,14 @@ Node 18 or newer.
 src/
   main.jsx           mount point — you'll never touch this
   App.jsx            shell: home, deck browser, lessons, battle, shop, effects
+  Model.jsx          understanding — two analogies, compare them, where it breaks, transfer
   Answer.jsx         the unit that finishes — hear it, try it, the move, build it, cold
   Study.jsx          the card — cue, say it, and it tells you
   speech.js          word-for-word and key-term scoring off the microphone
   juice.js           combos, particles, sound, commentary, ranks
   data/
     course.js        ← the curriculum: sections, units, teach screens, checks, bosses
+    models.js        17 ideas, two analogies each, with mappings and disanalogies
     encounters.js    28 scenes — the line, three replies, what each one costs, the tool
     cards.js         the card model — three stages per item, and the first-letter scaffold
     corpus.js        types, and the flattening the deck is built from
