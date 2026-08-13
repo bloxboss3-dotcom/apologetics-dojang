@@ -522,3 +522,79 @@ Maintenance, and clearly labelled as such: *"Keeping it — 12 to review."* An
 answer you have earned comes back **whole**, on a spaced schedule, rather than
 as three definition cards you meet separately. The 1,290-card deck is still
 there and still correct; it is no longer pretending to be the point.
+
+---
+
+## 13. The layer that was never there
+
+Fifth report, and the most useful one yet:
+
+> "I just feel like there's no learning, and it's all memorization based, but
+> the memorization techniques aren't very effective… I need it to be analogies
+> that would make sense for what I'm learning."
+
+That is a correct diagnosis of every version of this app. Look at what each
+build actually did:
+
+| Build | The interaction |
+|---|---|
+| Battle | cue → pick one of three |
+| Flashcards | cue → say the words → did you say enough |
+| Encounters | scene → pick a reply → read the tool |
+| Answer drill | cue → say three scripted beats → did you say enough |
+
+**All output. Nothing ever built the model that produces the output.** And that
+is what understanding is: if you actually understand contingency you do not
+need the three beats, because you can generate them on the spot against an
+objection nobody wrote a card for.
+
+### Why analogies, and why two
+
+Gentner, Loewenstein & Thompson: **comparing two analogous cases beats studying
+the same two cases separately by a wide margin** — in their negotiation study,
+learners who drew the comparison were about *three times* more likely to
+transfer the principle to a new situation. The mechanism is structural
+alignment: two surface-different cases laid side by side force out the
+relational skeleton they share, and the skeleton is the part that travels.
+
+One analogy is remembered as a nice story. Two, compared, become a schema.
+
+So every model carries **two analogies from deliberately different everyday
+domains**, and the centre of gravity of the drill is the question *"what do
+these two have in common?"* — asked **before** the answer is shown.
+
+### The shape
+
+| | |
+|---|---|
+| **1 · The confusion** | What people actually get wrong, in their words. The model needs a job before it needs a definition. |
+| **2 · Picture one** | A concrete scene, then the mapping laid out explicitly as a table. |
+| **3 · Picture two** | A different domain, same skeleton. |
+| **4 · What's shared** | **You answer first.** Then it shows you. ← the effect lives here |
+| **5 · Where it breaks** | The disanalogy, always. |
+| **6 · Does it apply?** | Three new cases, some of which only *look* similar. |
+
+Step 5 is not humility theatre: an analogy you cannot break is one you will
+over-apply, and arguing from the picture instead of from the thing is the
+characteristic failure of learning this way. Step 6 is the only honest test
+that a schema formed — reciting the analogy proves nothing; recognising the
+shape in an unseen case, and *refusing* one that merely resembles it, is the
+thing.
+
+### Seventeen models
+
+Necessary vs contingent (a chain of borrowers; a chain of paperclips needing a
+hook). Why "who made God" misfires (a club founder; the North Pole). The
+Euthyphro's third horn (the kilogram in Paris; a composer's style). Fine-tuning
+vs the puddle (fifty marksmen missing; a radio dial that is static everywhere
+but a hair's width). 400,000 variants (ten hand-copyists; twenty photographs of
+a building). Two problems of evil (a contradiction in an alibi vs fourteen
+patients). Oral tradition (a whisper game vs a pub song everyone knows).
+
+Each is paired to the question that uses it, so you meet the idea and then
+immediately spend it — the model comes first, the answer drill second. Running
+all seventeen back to back would separate understanding from use again, which
+is precisely what this layer exists to stop.
+
+The home screen now carries two counters: **questions you can answer**, and
+**ideas you understand**.

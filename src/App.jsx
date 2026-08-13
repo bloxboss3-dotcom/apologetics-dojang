@@ -4,6 +4,8 @@ import { dailySession, sectionStats, PACES, paceOf, TOTAL_CARDS, dayStamp, grade
 import { allCards, STAGE_META, ITEM_COUNT, cardId } from "./data/cards.js";
 import Study from "./Study.jsx";
 import Answer from "./Answer.jsx";
+import Model from "./Model.jsx";
+import { MODELS, MODEL_COUNT } from "./data/models.js";
 import { ENCOUNTERS, ENCOUNTER_COUNT } from "./data/encounters.js";
 import { byId as corpusById } from "./data/corpus.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
@@ -304,6 +306,43 @@ const CSS = `
 .dj .heldrow { font-size:13.5px; color:var(--paper); }
 .dj .heldrow.more { color:var(--muted); }
 
+/* ── understanding an idea ──
+   Five builds of "say the words back" before the obvious thing: nothing ever
+   built the model that lets you generate the words. This is that layer, and
+   its centre of gravity is the comparison between two analogies rather than
+   either analogy on its own. */
+.dj .mdlcard { border-left-color:#8FA8C4; }
+.dj .hook { font-family:Fraunces,Georgia,serif; font-size:clamp(18px,4.8vw,21px);
+  line-height:1.5; margin-top:14px; }
+
+/* The mapping, laid out as a table. An analogy told and not mapped gets
+   remembered as a story; the correspondence is the part that transfers. */
+.dj .maptable { margin-top:10px; display:flex; flex-direction:column; gap:1px;
+  border-radius:13px; overflow:hidden; border:1px solid var(--line); }
+.dj .maprow { display:flex; align-items:baseline; gap:10px; padding:11px 13px;
+  background:var(--panel); }
+.dj .maprow:nth-child(odd) { background:#0F141B; }
+.dj .mapfrom { flex:1; font-size:13.5px; color:var(--muted); }
+.dj .maparrow { flex:none; color:var(--gold); font-size:13px; }
+.dj .mapto { flex:1; font-size:13.5px; color:var(--paper); font-weight:500; }
+
+/* The two hooks side by side at the comparison step. Physically adjacent
+   because structural alignment is easier when the cases are. */
+.dj .twoup { display:flex; gap:10px; margin-top:16px; }
+.dj .twocol { flex:1; padding:13px; border-radius:13px; background:var(--panel);
+  border:1px solid var(--line); }
+@media (max-width:420px) { .dj .twoup { flex-direction:column; } }
+
+.dj .breakbox { margin-top:20px; padding:15px 16px; border-radius:15px;
+  background:#180F0E; border:1px solid #4A2422; }
+
+/* Transfer cases. Two buttons, and one of them is right about half the time —
+   a case that merely LOOKS similar is the most instructive thing here. */
+.dj .tcase { padding:14px; border-radius:14px; background:var(--panel); border:1px solid var(--line); }
+.dj .tverdict { margin-top:11px; padding-left:12px; border-left:2px solid var(--line); }
+.dj .tverdict.ok { border-left-color:var(--good); }
+.dj .tverdict.no { border-left-color:var(--gold); }
+
 /* ── building the answer, beat by beat ── */
 .dj .beatdots { display:flex; gap:7px; margin-top:12px; }
 .dj .beatdot { width:9px; height:9px; border-radius:50%; background:var(--line); flex:none; }
@@ -577,6 +616,25 @@ export const nextEncounter = (prog) =>
    short human name, so there is no second place for this to drift out of sync. */
 export const answerName = (enc) => (corpusById[enc.anchor] || {}).name || enc.id;
 export const answersHeld = (prog) => (prog.answers || []).length;
+
+/* Understanding comes before performing. If a question has a mental model
+   attached and you have not worked through it, that is what you get first —
+   because the answer drill teaches you to say three beats, and the model is
+   what lets you generate them against an objection nobody scripted. */
+export const modelDue = (prog, enc) => {
+  const done = new Set(prog.models || []);
+  /* The model behind the question you are ABOUT to be asked, and only that
+     one. Understanding an idea and then immediately using it in a real
+     conversation is the pairing that makes either half work — running all
+     seventeen models back to back and the questions afterwards would separate
+     them again, which is the thing this layer exists to stop.
+     Standalone models only surface once the questions have run out. */
+  if (enc) {
+    if (!enc.model || done.has(enc.model)) return null;
+    return MODELS.find((x) => x.id === enc.model) || null;
+  }
+  return MODELS.find((m) => !done.has(m.id)) || null;
+};
 
 /* Truncate on a word, never mid-word. "You k…" reads as a rendering bug rather
    than as an excerpt. */
@@ -1024,6 +1082,24 @@ export default function App() {
      the card did it. The deck picks the item up at "memorise" from here, so you
      never meet a line cold, and the boring definition card is skipped for
      anything an encounter has already taught. */
+  /* Finishing a model. It records nothing about performance on purpose — you
+     either worked through the comparison or you did not, and turning
+     comprehension into a score would make it another thing to be graded on. */
+  const takeModel = (m, right) => {
+    const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
+    const gain = 15 + right * 5;
+    const before = beltFor(prog.xp), after = beltFor(prog.xp + gain);
+    save({
+      ...prog,
+      models: [...new Set([...(prog.models || []), m.id])],
+      xp: prog.xp + gain, coins: prog.coins + 10,
+      streak, last: today(),
+    });
+    setScreen("home");
+    if (after.name !== before.name) setBeltUp(after);
+  };
+
   /* Finishing an answer. Two things are written: the answer joins the list you
      can see on the home screen, and the objection it defeats is handed to the
      spaced deck already understood and half memorised — so what comes back is
@@ -1122,6 +1198,9 @@ export default function App() {
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("lessons")} />
       ) : screen === "study" ? (
         <Study prog={prog} bank={bank} back={() => setScreen("home")} />
+      ) : screen === "model" && modelDue(prog, nextEncounter(prog)) ? (
+        <Model model={modelDue(prog, nextEncounter(prog))} prog={prog}
+          back={() => setScreen("home")} onDone={takeModel} />
       ) : screen === "answer" && nextEncounter(prog) ? (
         <Answer enc={nextEncounter(prog)} prog={prog} back={() => setScreen("home")}
           onDone={takeEncounter} />
@@ -1458,7 +1537,9 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
   const today = dailySession(prog);
   const count = today.items.length;
   const enc = nextEncounter(prog);
+  const mdl = modelDue(prog, enc);
   const held = answersHeld(prog);
+  const modelsHeld = (prog.models || []).length;
   const decks = sectionStats(prog);
   const pace = paceOf(prog);
   const met = decks.reduce((a, d) => a + d.met, 0);
@@ -1484,6 +1565,9 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
       <div className="heldcard">
         <div className="eyebrow">Questions you can answer</div>
         <div className="heldnum">{held} <span className="heldof">of {ENCOUNTER_COUNT}</span></div>
+        <div className="eyebrow" style={{ marginTop: 10, color: "#8FA8C4" }}>
+          Ideas you understand · {modelsHeld} of {MODEL_COUNT}
+        </div>
         {held > 0 && (
           <div className="heldlist">
             {(prog.answers || []).slice(-4).reverse().map((id) => {
@@ -1495,7 +1579,21 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
         )}
       </div>
 
-      {enc ? (
+      {/* Understanding first. If the next question has a mental model you have
+          not worked through, that is what is offered — the answer drill teaches
+          three beats, and the model is what lets you generate them against an
+          objection nobody scripted. */}
+      {mdl ? (
+        <button className="enccard mdlcard" onClick={() => go("model")}>
+          <div className="eyebrow" style={{ color: "#8FA8C4" }}>
+            Understand it first · two analogies · about 5 minutes
+          </div>
+          <p className="said" style={{ fontSize: 19, marginTop: 8 }}>{mdl.name}</p>
+          <div className="eyebrow" style={{ marginTop: 10 }}>
+            {clipWords(mdl.confusion, 92)} →
+          </div>
+        </button>
+      ) : enc ? (
         <button className="enccard" onClick={() => go("answer")}>
           <div className="eyebrow" style={{ color: "var(--gold)" }}>
             {held === 0 ? "Start here" : "Next one"} · about 8 minutes
