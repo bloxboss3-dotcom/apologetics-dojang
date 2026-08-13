@@ -3,8 +3,9 @@ import { VERSES, SECTIONS, SCIENCE, BELTS, ALL_UNITS } from "./data/course.js";
 import { dailySession, sectionStats, PACES, paceOf, TOTAL_CARDS, dayStamp, grade } from "./data/review.js";
 import { allCards, STAGE_META, ITEM_COUNT, cardId } from "./data/cards.js";
 import Study from "./Study.jsx";
-import Encounter from "./Encounter.jsx";
+import Answer from "./Answer.jsx";
 import { ENCOUNTERS, ENCOUNTER_COUNT } from "./data/encounters.js";
+import { byId as corpusById } from "./data/corpus.js";
 import { COSMETICS, SLOTS, CONSUMABLES, PERKS, MENTOR_HINTS, lookOf,
          RARITIES, RARITY_ORDER, PACKS, POOL, STARTER_IDS, openPack } from "./data/economy.js";
 import { loadJudge, saveJudge, judgeReady, buildPrompt, remoteJudge, localJudge } from "./judge.js";
@@ -290,6 +291,36 @@ const CSS = `
 .dj .rankrow { display:flex; align-items:center; gap:16px; margin-top:14px; }
 /* The key terms a prose answer was scored on. Chips rather than running text,
    because the point is to see at a glance which ideas you actually said. */
+/* ── the answers you hold ──
+   The one screen in the app that says you can now do something you could not
+   do before. It is first, it is biggest, and its number is a capability count
+   rather than a study count. */
+.dj .heldcard { margin-top:16px; padding:20px; border-radius:18px;
+  background:linear-gradient(180deg,#16241C 0%,#111A15 100%);
+  border:1px solid #2A4A38; }
+.dj .heldnum { font:700 46px Fraunces,Georgia,serif; line-height:1; margin-top:8px; color:var(--good); }
+.dj .heldof { font:400 16px 'JetBrains Mono',monospace; color:var(--muted); margin-left:8px; }
+.dj .heldlist { margin-top:14px; display:flex; flex-direction:column; gap:5px; }
+.dj .heldrow { font-size:13.5px; color:var(--paper); }
+.dj .heldrow.more { color:var(--muted); }
+
+/* ── building the answer, beat by beat ── */
+.dj .beatdots { display:flex; gap:7px; margin-top:12px; }
+.dj .beatdot { width:9px; height:9px; border-radius:50%; background:var(--line); flex:none; }
+.dj .beatdot.now { background:var(--gold); box-shadow:0 0 10px 1px rgba(224,171,73,.6); }
+.dj .beatdot.ok { background:var(--good); }
+.dj .beatdot.part { background:#4A3A22; }
+.dj .beatlabel { font-size:15px; margin-top:16px; color:var(--gold);
+  font-family:'JetBrains Mono',monospace; letter-spacing:.1em; text-transform:uppercase; }
+.dj .beatrow { display:flex; align-items:flex-start; gap:10px; }
+.dj .beatrow .beatdot { margin-top:6px; }
+
+/* Your first attempt beside your last one. Not a score — a before and after in
+   your own words, which is the only thing that has ever been able to show you
+   that you learned something. */
+.dj .beforeafter { margin-top:20px; padding:16px; border-radius:15px;
+  background:var(--panel); border:1px solid var(--line); }
+
 .dj .termrow { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
 .dj .term { font:600 11.5px 'JetBrains Mono',monospace; padding:4px 9px; border-radius:999px;
   border:1px solid var(--line); }
@@ -541,6 +572,11 @@ const shuffle = (a) => a.map((v) => [Math.random(), v]).sort((x, y) => x[0] - y[
    first contact with an idea benefits from an order somebody chose. */
 export const nextEncounter = (prog) =>
   ENCOUNTERS.find((e) => !(prog.encounters || []).includes(e.id)) || null;
+
+/* What to call an answer on the list. The objection it defeats already has a
+   short human name, so there is no second place for this to drift out of sync. */
+export const answerName = (enc) => (corpusById[enc.anchor] || {}).name || enc.id;
+export const answersHeld = (prog) => (prog.answers || []).length;
 
 /* Truncate on a word, never mid-word. "You k…" reads as a rendering bug rather
    than as an excerpt. */
@@ -988,16 +1024,26 @@ export default function App() {
      the card did it. The deck picks the item up at "memorise" from here, so you
      never meet a line cold, and the boring definition card is skipped for
      anything an encounter has already taught. */
-  const takeEncounter = (enc) => {
+  /* Finishing an answer. Two things are written: the answer joins the list you
+     can see on the home screen, and the objection it defeats is handed to the
+     spaced deck already understood and half memorised — so what comes back is
+     the whole answer, not a definition you have met three times. */
+  const takeEncounter = (enc, passed) => {
     const y = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
     const streak = prog.last === today() ? prog.streak : prog.last === y ? prog.streak + 1 : 1;
-    const id = cardId(enc.anchor, "understand");
-    const before = beltFor(prog.xp), after = beltFor(prog.xp + 10);
+    const srs = { ...(prog.srs || {}) };
+    for (const st of passed ? ["understand", "memorise"] : ["understand"]) {
+      const id = cardId(enc.anchor, st);
+      srs[id] = grade(srs[id], 2);
+    }
+    const gain = passed ? 40 : 12;
+    const before = beltFor(prog.xp), after = beltFor(prog.xp + gain);
     save({
       ...prog,
       encounters: [...(prog.encounters || []), enc.id],
-      srs: { ...(prog.srs || {}), [id]: grade((prog.srs || {})[id], 2) },
-      xp: prog.xp + 10, coins: prog.coins + 4,
+      answers: passed ? [...new Set([...(prog.answers || []), enc.id])] : (prog.answers || []),
+      srs,
+      xp: prog.xp + gain, coins: prog.coins + (passed ? 25 : 8),
       streak, last: today(),
     });
     setScreen("home");
@@ -1076,8 +1122,8 @@ export default function App() {
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("lessons")} />
       ) : screen === "study" ? (
         <Study prog={prog} bank={bank} back={() => setScreen("home")} />
-      ) : screen === "encounter" && nextEncounter(prog) ? (
-        <Encounter enc={nextEncounter(prog)} back={() => setScreen("home")}
+      ) : screen === "answer" && nextEncounter(prog) ? (
+        <Answer enc={nextEncounter(prog)} prog={prog} back={() => setScreen("home")}
           onDone={takeEncounter} />
       ) : screen === "browse" ? (
         <Browse prog={prog} back={() => setScreen("home")} />
@@ -1412,6 +1458,7 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
   const today = dailySession(prog);
   const count = today.items.length;
   const enc = nextEncounter(prog);
+  const held = answersHeld(prog);
   const decks = sectionStats(prog);
   const pace = paceOf(prog);
   const met = decks.reduce((a, d) => a + d.met, 0);
@@ -1427,22 +1474,42 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
         <button className="icon-btn" onClick={toggleSound}>{prog.sound ? "♪" : "✕♪"}</button>
       </div>
 
-      {/* The encounter sits above the study card on purpose. A flashcard is a
-          retention instrument and a poor way to meet something for the first
-          time; the scene is where an idea gets acquired and the deck is where
-          it gets kept. Leading with the deck would be putting the filing
-          cabinet in front of the conversation. */}
+      {/* ── the only number that means anything ──
+          Four rebuilds went by before it was obvious: the app had no unit that
+          ever FINISHED. Cards, scenes, combos — all of it was a sip from an
+          ocean of 1,290 items with no bottom and no arrival. Hangul works partly
+          because twenty-four letters is a closed set you can finish, after which
+          you can READ. This is that number: not how much you have studied, but
+          how many questions you can now answer out loud. */}
+      <div className="heldcard">
+        <div className="eyebrow">Questions you can answer</div>
+        <div className="heldnum">{held} <span className="heldof">of {ENCOUNTER_COUNT}</span></div>
+        {held > 0 && (
+          <div className="heldlist">
+            {(prog.answers || []).slice(-4).reverse().map((id) => {
+              const e = ENCOUNTERS.find((x) => x.id === id);
+              return e ? <div key={id} className="heldrow">✓ {answerName(e)}</div> : null;
+            })}
+            {held > 4 && <div className="heldrow more">+ {held - 4} more</div>}
+          </div>
+        )}
+      </div>
+
       {enc ? (
-        <button className="enccard" onClick={() => go("encounter")}>
-          <div className="eyebrow" style={{ color: "var(--gold)" }}>A conversation is waiting</div>
+        <button className="enccard" onClick={() => go("answer")}>
+          <div className="eyebrow" style={{ color: "var(--gold)" }}>
+            {held === 0 ? "Start here" : "Next one"} · about 8 minutes
+          </div>
           <p className="said" style={{ fontSize: 17, marginTop: 8 }}>“{clipWords(enc.says, 116)}”</p>
-          <div className="eyebrow" style={{ marginTop: 10 }}>{enc.where} · answer it before you're told →</div>
+          <div className="eyebrow" style={{ marginTop: 10 }}>
+            {enc.where} · you'll be able to answer this →
+          </div>
         </button>
       ) : (
         <div className="enccard" style={{ cursor: "default" }}>
-          <div className="eyebrow">All {ENCOUNTER_COUNT} conversations taken</div>
+          <div className="eyebrow">All {ENCOUNTER_COUNT} answered</div>
           <p className="muted" style={{ marginTop: 7 }}>
-            Every one of them is in your deck now. More get written; the deck keeps what you have.
+            Every one is in your deck now, and comes back whole rather than in pieces.
           </p>
         </div>
       )}
@@ -1450,14 +1517,16 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
       {/* The one thing on this screen that matters. Everything above it is
           identity and everything below it is settings. */}
       <div className="todaycard">
-        <div className="eyebrow">{count ? "Today" : "Caught up"}</div>
-        <h1 style={{ fontSize: 34, marginTop: 8, lineHeight: 1.1 }}>
-          {count ? <>{count} <span style={{ fontSize: 20, color: "var(--muted)" }}>cards</span></> : "Nothing due"}
+        <div className="eyebrow">{count ? "Keeping it" : "Caught up"}</div>
+        <h1 style={{ fontSize: 28, marginTop: 8, lineHeight: 1.1 }}>
+          {count ? <>{count} <span style={{ fontSize: 18, color: "var(--muted)" }}>to review</span></> : "Nothing due"}
         </h1>
-        <p className="muted" style={{ marginTop: 8 }}>{today.plan.reason}</p>
-        <button className="btn btn-gold" style={{ marginTop: 16 }}
+        <p className="muted" style={{ marginTop: 8 }}>
+          {count ? "Verses, quotes and the answers you already have — said out loud." : today.plan.reason}
+        </p>
+        <button className="use" style={{ marginTop: 14 }}
           disabled={!count} onClick={() => go("study")}>
-          {count ? "Start — say them out loud" : "Come back tomorrow"}
+          {count ? "Review →" : "Come back tomorrow"}
         </button>
       </div>
 

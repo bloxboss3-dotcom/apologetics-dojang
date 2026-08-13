@@ -1,6 +1,10 @@
 # Apologetics Dojang
 
-An apologetics trainer in two halves. **Encounters** are where you meet an idea: somebody says something to you, you answer before you're told anything, and you find out what your answer cost — then the tool arrives. **The deck** is where you keep it: spaced flashcards you answer out loud, auto-graded from your voice, with a combo counter that escalates as you run.
+An apologetics trainer built around one number: **how many questions you can answer out loud.**
+
+An **Answer** is one question somebody might actually ask you, start to finish in about eight minutes — you try it cold before you're taught anything, learn the move, build the reply in three beats (concede, turn, limit), then say the whole thing with no scaffold. Pass and it joins your list. At the end you see your first attempt beside your last one, in your own words.
+
+Underneath it, **the deck** keeps what you've earned: spaced flashcards you answer out loud, auto-graded from your voice, with a combo counter that escalates as you run.
 
 The split is deliberate. A flashcard is a retention instrument and a poor way to meet something for the first time; attempting before instruction beats instruction-first on conceptual understanding, and narrative is recalled about twice as well as the same content stated flat. 430 things worth knowing — verses, quotes, arguments, distinctions, objections, evidence — each met three times: **understand it, memorise it, recall it cold.** Every card is answered out loud before anything is revealed, and you grade yourself. 1,290 cards on a spaced-repetition schedule.
 
@@ -51,7 +55,7 @@ Node 18 or newer.
 src/
   main.jsx           mount point — you'll never touch this
   App.jsx            shell: home, deck browser, lessons, battle, shop, effects
-  Encounter.jsx      the scene — line, your move, what happened, the tool
+  Answer.jsx         the unit that finishes — hear it, try it, the move, build it, cold
   Study.jsx          the card — cue, say it, and it tells you
   speech.js          word-for-word and key-term scoring off the microphone
   juice.js           combos, particles, sound, commentary, ranks
