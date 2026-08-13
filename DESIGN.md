@@ -450,3 +450,75 @@ and a rank on the session.
    self-grade instead of handing out a miss nobody earned.
 3. **A miss is never punished.** Soft low tone, small shake, a kind sentence,
    and the card comes back. No hearts, no lives, no timers, nothing red.
+
+---
+
+## 12. Nothing ever finished
+
+Fourth report, after the flashcards, the scenes, and the whole celebration
+layer: *"I'm still not using it very much… I definitely am not learning
+anything."*
+
+Three rebuilds, three mechanisms, same result. At that point the mechanism was
+not the problem, and the honest thing to do was stop adding.
+
+### The diagnosis
+
+**The app had no unit of work that ever finished.**
+
+Every session was a sip from an ocean: twelve cards out of 1,290, drawn by a
+scheduler, ending in a rank. Nothing ever concluded. You could study for a
+month and be unable to name one thing you could now do that you couldn't do
+before — and "I am not learning anything" is exactly what that feels like from
+the inside, whether or not the recall data says otherwise.
+
+Compare the Korean trainer this same person opens daily. Hangul is a **closed
+set**: twenty-four letters, learnable in about a week, and at the end you can
+*read* — an entire capability, provable in one second by looking at a sign.
+That app has an arrival. This one had a treadmill with confetti on it.
+
+### The unit
+
+**An Answer.** One question somebody might actually ask you, start to finish,
+about eight minutes, ending with you able to answer it out loud.
+
+| | |
+|---|---|
+| **1 · Hear it** | They ask. In their voice, in a place. |
+| **2 · Try it** | You answer **cold, before any teaching**, and it is kept. |
+| **3 · The move** | What to say, and what saying it badly costs. |
+| **4 · Build it** | Three beats — **concede, turn, limit** — said one at a time. |
+| **5 · Cold** | The whole answer, no scaffold, scored on the terms that carry it. |
+
+Pass, and it joins **"Questions you can answer: 7 of 28"** on the home screen.
+That counter replaced the card count as the first thing you see, because it is
+the only number in the app that reports a capability rather than an activity.
+
+### The proof
+
+Step 2 exists entirely to make step 5 mean something. Your first attempt is
+played back beside your last one, in your own words:
+
+> **Before** — "um I don't know I guess it's just what I believe"
+> **After** — "Probably true — if I'd been born there I'd believe what they
+> believe. And so would you. It cuts both ways, so it can't be evidence against
+> either of us. It does mean I have to give you actual reasons, not just point
+> at how I was raised."
+
+No score can do that. Nothing else in four builds could show anybody that they
+had learned something.
+
+### Concede, turn, limit
+
+The three beats are a fixed skeleton on purpose. Every good answer in this
+material has that shape, and drilling the shape is what makes it portable to
+the objection nobody wrote a card for. It is also the thing that can be tested
+by production rather than recognition — which is what turns an encounter from
+something you read into something you can do.
+
+### What the deck became
+
+Maintenance, and clearly labelled as such: *"Keeping it — 12 to review."* An
+answer you have earned comes back **whole**, on a spaced schedule, rather than
+as three definition cards you meet separately. The 1,290-card deck is still
+there and still correct; it is no longer pretending to be the point.

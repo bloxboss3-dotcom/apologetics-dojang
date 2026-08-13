@@ -35,6 +35,15 @@
    Every encounter is anchored to an item already in the corpus, so finishing
    one hands that item to the spaced deck and you never meet it cold.
 
+   ── beats ──
+   Three lines that build the answer, and the shape is fixed on purpose:
+   CONCEDE what is true, TURN to what survives, name the LIMIT of your own
+   reply. Every good answer in this material has that skeleton, and drilling
+   the skeleton is what makes it portable to the objection nobody wrote a
+   card for. It is also the thing you can actually be tested on producing —
+   which is what turns an encounter from something you read into something
+   you can now do.
+
    ── On the moves ──
    There is usually no clean win, because there usually isn't one. The three
    tones are:
@@ -76,6 +85,11 @@ export const ENCOUNTERS = [
         lands: "“Right. So it's not really about it being true.” He's not being cruel. He just heard you say it isn't.",
         why: "The observation about upbringing was true and you conceded the conclusion instead of the observation. Those are different sentences." },
     ],
+    beats: [
+      { label: "Concede", say: "Probably true — if I'd been born there I'd believe what they believe." },
+      { label: "Turn", say: "And so would you. It cuts both ways, so it can't be evidence against either of us." },
+      { label: "Limit", say: "It does mean I have to give you actual reasons, not just point at how I was raised." },
+    ],
     tool: "This is the genetic fallacy — judging a claim by where it came from rather than whether it's true. It is perfectly symmetrical, and that symmetry is the whole reply: they were raised somewhere too.",
     keep: "The reply is not the Latin name. It's that they were raised somewhere too.",
   },
@@ -97,6 +111,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "“That's what I mean though. I can't just decide to leap.” And now she's right and you agreed to it.",
         why: "You handed over the definition that was doing all the work. Once faith means believing without grounds, there's nothing left to defend." },
+    ],
+    beats: [
+      { label: "Ask first", say: "What do you mean by faith? I think we're using it for two different things." },
+      { label: "Turn", say: "The biblical word is trust extended on grounds — closer to loyalty than to guessing." },
+      { label: "Limit", say: "Plenty of believers do use it the way you said. I'm defending a definition, not everyone's behaviour." },
     ],
     tool: "The New Testament word is pistis — trust, loyalty, reliance, extended to something ON grounds. Hebrews 11:1 describes assurance and conviction, not guessing. The other definition is late and largely polemical.",
     keep: "Ask what they mean by the word before you answer it. Half of all arguments are two people defending different definitions.",
@@ -120,6 +139,11 @@ export const ENCOUNTERS = [
         lands: "“That's all I wanted you to say.” He's satisfied, and he now thinks the whole thing is a preference, like a football team.",
         why: "There's a difference between 'not proved' and 'no evidence either way'. You conceded the second when only the first was true." },
     ],
+    beats: [
+      { label: "Concede", say: "You're right, none of it's proved." },
+      { label: "Turn", say: "Neither is the reality of the past, or other minds. Nothing outside maths is — we both live on evidence." },
+      { label: "Limit", say: "Which means the case is cumulative and probabilistic, and reasonable people weigh it differently." },
+    ],
     tool: "Proof is deductive certainty and is essentially unavailable outside mathematics and logic. Evidence raises or lowers probability. You both live entirely by evidence about everything else.",
     keep: "Don't refuse the demand for proof — point out that neither of you applies it anywhere else, then offer evidence.",
   },
@@ -141,6 +165,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "“A few bad centuries.” They repeat it back to you and everyone hears how it sounded.",
         why: "Minimising a real atrocity to protect a position is heard instantly, and it costs more than the atrocity did." },
+    ],
+    beats: [
+      { label: "Concede", say: "The crusades were as bad as you think. Worse, in places. I won't defend them." },
+      { label: "Turn", say: "The mechanism is tribal certainty, not religion — the atheist regimes of the last century killed on a bigger scale." },
+      { label: "Limit", say: "That's not a defence of anything. It's a smaller claim than most Christians want to make here." },
     ],
     tool: "The record is as bad as stated and should be conceded first, without qualification. What survives afterwards is narrow and real: religion is one carrier of a human disposition, not its source — the twentieth century's explicitly atheist regimes make that clear.",
     keep: "Concede first, and put the 'but' in a different sentence. Same words, opposite effect.",
@@ -166,6 +195,11 @@ export const ENCOUNTERS = [
         lands: "He nods and drops it. He also files away that the question doesn't have an answer, and he'll remember that for twenty years.",
         why: "It does have an answer. Retreating to faith on a question with a real reply teaches him the reply doesn't exist." },
     ],
+    beats: [
+      { label: "Correct gently", say: "The premise isn't that everything has a cause — it's that whatever BEGINS has one." },
+      { label: "Turn", say: "So an eternal being isn't an exception snuck in. It's what the argument concludes to." },
+      { label: "Limit", say: "Your other half is the good one: maybe the universe is the necessary thing. That takes a longer argument." },
+    ],
     tool: "The premise is 'whatever begins to exist has a cause', so an eternal being isn't an exception smuggled in — it's what the argument concludes to. But his second half is live philosophy: a necessary universe is a real position, and answering it takes the contingency argument.",
     keep: "It is a reasonable question asked in good faith nine times out of ten. Tone decides everything here.",
   },
@@ -187,6 +221,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“Great — answered how?” You've claimed the win without doing the work, in front of people who can tell.",
         why: "Asserting that something has been refuted is not refuting it, and a room full of philosophy students is the worst place to try." },
+    ],
+    beats: [
+      { label: "Name the third option", say: "Neither horn. His commands flow from his own nature, and that nature is what goodness is." },
+      { label: "Turn", say: "So goodness isn't above him and isn't invented by him." },
+      { label: "Limit", say: "You'll ask whether his nature is good because it's his. Honestly, the question runs out there — like every ethical theory." },
     ],
     tool: "The third option: God's commands flow from God's own nature, which is the standard of goodness. Goodness is neither above him nor invented by him — it is what he is. Expect the follow-up about the nature, and answer it honestly: the question runs out there, the way every ethical theory terminates somewhere.",
     keep: "Escaping a dilemma isn't proving a conclusion. Say so before someone says it for you.",
@@ -210,6 +249,11 @@ export const ENCOUNTERS = [
         lands: "“So he did decide something.” You've confirmed her worst reading and attributed it to God's justice.",
         why: "A true sentence deployed as a conversation-ender. It sounds like a defence of the thing she's terrified of." },
     ],
+    beats: [
+      { label: "Ask first", say: "Is this something you've been carrying, or something you've been thinking about?" },
+      { label: "If it's carried", say: "Then I'm not going to argue. I don't know, and I'm sorry." },
+      { label: "If it's thought", say: "Christians hold several positions — self-exclusion, annihilation, an offence against infinite good. Say which you hold." },
+    ],
     tool: "This is the objection most likely to be a wound wearing an argument's clothes, and it is very often about one specific person. The philosophical answers are real — chosen self-exclusion, an offence against an infinite good, annihilationism, the universalist minority — and none of them is what is being asked for here.",
     keep: "Ask before you answer: is this something you've been carrying, or something you've been thinking about?",
   },
@@ -231,6 +275,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "“That's just a contradiction.” He is right and now he thinks the whole thing is nonsense that adults defend anyway.",
         why: "Descartes actually held that God could make contradictions true. Almost nobody follows him, and this is why." },
+    ],
+    beats: [
+      { label: "Answer", say: "Those words don't describe a thing — like a married bachelor. Failing to make nothing isn't a limit on power." },
+      { label: "Credit them", say: "It's a real question, and Aquinas took it seriously in the thirteenth century." },
+      { label: "Limit", say: "Descartes disagreed and thought God could make contradictions true. So I am choosing a definition." },
     ],
     tool: "Omnipotence is the power to do anything logically possible. 'A stone too heavy for an omnipotent being to lift' names no possible object, so failing to make one is not a failure of power. Aquinas states this plainly in the thirteenth century.",
     keep: "Time this one. Under a minute. Lingering signals you enjoyed it more than you liked him.",
@@ -256,6 +305,11 @@ export const ENCOUNTERS = [
         lands: "“I just granted you theism. I'm asking for step two.” You sounded like you were stalling because you had no step two.",
         why: "Right about the order and it read as evasion, because he had already done the thing you were asking him to do." },
     ],
+    beats: [
+      { label: "Concede first", say: "You're right, and I should've said it before you did. All of that gets to deism." },
+      { label: "Turn", say: "Christ is a separate argument, and it's historical — it runs through the resurrection, not cosmology." },
+      { label: "Limit", say: "Which means the whole weight of the Christian bit sits on evidence I now have to actually give you." },
+    ],
     tool: "Natural theology gets you from nothing to a theistic-shaped something. The move to Christ is historical and runs through the resurrection, not through cosmology. Two stages, argued differently, and running them together is a real error.",
     keep: "Say the limit of your own argument before anyone asks. It is worth more than the argument.",
   },
@@ -277,6 +331,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“Wow. Okay.” She answers, but coldly. You've made her defend child torture at a family dinner.",
         why: "The question is legitimate and the framing was an ambush. There is a way to ask it that doesn't make someone a monster for answering." },
+    ],
+    beats: [
+      { label: "Grant the science", say: "All of that's right, and I'm not disputing any of it." },
+      { label: "Turn", say: "It explains why we FEEL obligations. It doesn't say whether any obligation is real." },
+      { label: "Limit", say: "And if you just deny that any of them are real, the argument doesn't run. Which one are you?" },
     ],
     tool: "Moral ontology asks what makes anything good. Moral epistemology asks how anyone knows what is good. Evolution is a superb answer to the second and silent on the first. Note the exit: a sophisticated opponent may simply deny moral realism, and against them the moral argument doesn't run.",
     keep: "Never dispute the science. Ask the question the science doesn't answer.",
@@ -300,6 +359,11 @@ export const ENCOUNTERS = [
         lands: "He pulls up a clip on his phone of someone very serious arguing exactly that way, last month.",
         why: "Plenty of prominent Christians do argue that way. Denying it costs you the credibility you needed for the distinction you were about to draw." },
     ],
+    beats: [
+      { label: "Concede", say: "The pattern's real. Newton used God to patch the planetary orbits and Laplace showed he didn't need to." },
+      { label: "Turn", say: "So here's the test: would the argument evaporate if a physicist announced something tomorrow? If yes, it was a gaps argument." },
+      { label: "Limit", say: "Plenty of Christians do argue that way. I'm not defending those arguments." },
+    ],
     tool: "The test: would the argument evaporate if a physicist made an announcement tomorrow? Fine-tuning and the ground of moral obligation aren't claims that science has failed — they're claims about what kind of thing could explain it at all. A fuller physics of the constants relocates that question rather than closing it.",
     keep: "Apply the test to your own arguments in public, before someone applies it for you.",
   },
@@ -321,6 +385,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“Alright, calm down.” It's 11pm and he sent a meme. You sent back a lecture.",
         why: "True, and the register was wrong by a mile. Matching the energy of the room is content, not packaging." },
+    ],
+    beats: [
+      { label: "Answer the logic", say: "Rejecting some claims in a category isn't a reason to reject all of them — or you'd reject every historical claim." },
+      { label: "Turn", say: "And the reasons differ. Nobody says Zeus rose from the dead in a datable year in a documented province." },
+      { label: "Limit", say: "The serious version underneath is real though: why this tradition over other sophisticated ones? That I have to answer." },
     ],
     tool: "The logic doesn't follow — rejecting some members of a category is not a reason to reject all of them. But there is a serious version underneath: on what grounds do you privilege your tradition over other sophisticated ones? That question is real and the one-god-further line is a poor delivery of it.",
     keep: "Answer the good version of what they said, not the version they actually said.",
@@ -346,6 +415,11 @@ export const ENCOUNTERS = [
         lands: "“I've had that said to me by families. I've watched what it does to them.” You've used the sentence that hurt people she cares about.",
         why: "It's the sentence that ends conversations and does damage that lasts years. Romans 8:28 does not say all things are good." },
     ],
+    beats: [
+      { label: "Concede", say: "The logical version's been answered. The evidential one hasn't, and I'm not going to pretend it has." },
+      { label: "Turn", say: "What I've got is that Christianity claims God entered it rather than explaining it." },
+      { label: "Limit", say: "That's a change of subject as an argument, even if it's the heart of the thing. I know that." },
+    ],
     tool: "The LOGICAL problem — that God and evil are contradictory — is widely regarded as answered. The EVIDENTIAL problem, about the amount and distribution of suffering, is not, and should never be claimed to be. Anyone who tells you the problem of evil was solved is describing the first and has not met the second.",
     keep: "Any answer to this that leaves you feeling satisfied has not understood the question.",
   },
@@ -367,6 +441,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“So God stayed hidden to protect my freedom, and the result is I don't believe in him. Great system.” He's not wrong and you have no follow-up.",
         why: "It's a real reply and it's partial, and offered as though complete it insults someone who has thought about this for years." },
+    ],
+    beats: [
+      { label: "Refuse the accusation", say: "I'm not going to tell you that you were resisting. I can't see your heart." },
+      { label: "Turn", say: "The complaint is inside the book — a third of the Psalms, and the cry from the cross." },
+      { label: "Limit", say: "The replies I have — that overwhelming evidence might coerce rather than invite — are partial, and I know they're partial." },
     ],
     tool: "Schellenberg's argument turns on nonresistant nonbelief, and the theist's usual escape is to deny that any such thing exists. That is a claim about a stranger's inner life you should be very slow to make out loud. The tradition contains the complaint itself — a third of the Psalms, and the cry from the cross.",
     keep: "Answering this badly costs you the relationship you were trying to keep. That's a worse loss than the argument.",
@@ -390,6 +469,11 @@ export const ENCOUNTERS = [
         lands: "“I know. I'm asking why the pattern is what it is.” You've answered a question he didn't ask, with a slogan.",
         why: "It's true and it's the stock line, and it reads as a way of not engaging with a genuinely sharp observation." },
     ],
+    beats: [
+      { label: "Concede", say: "The pattern's exactly what you said, and I can't explain it away." },
+      { label: "Turn", say: "The claim isn't a healthcare system — miracles are signs attached to purposes, and their scarcity is what makes them signs." },
+      { label: "Limit", say: "That doesn't fully account for the pattern. It's one of the sharper objections and it deserves better than it usually gets." },
+    ],
     tool: "The pattern observation is accurate and worth conceding. The theological reply is that miracles in the Christian claim are signs attached to particular purposes rather than a healthcare system, and their scarcity is what makes them signs — which doesn't fully account for the pattern either.",
     keep: "One of the sharper modern objections, and it deserves better than the dismissal it usually gets.",
   },
@@ -411,6 +495,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“I know what the genetic fallacy is.” She does. She teaches it. And she wasn't committing it — she was making a defeater claim.",
         why: "The honest form of her objection isn't the fallacy: if belief is fully accounted for naturally, it loses its weight as otherwise inexplicable." },
+    ],
+    beats: [
+      { label: "Turn", say: "If wish-fulfilment undercuts belief, it undercuts unbelief on identical grounds — there's a psychology for both." },
+      { label: "Concede the good half", say: "And it fits parts of religious practice extremely well. I'm not going to deny that." },
+      { label: "Limit", say: "It fits the doctrine badly though — nobody wishes for hell, or martyrdom, or a God who says no." },
     ],
     tool: "Symmetrical, and therefore weak as usually stated. The serious form is not the genetic fallacy but a defeater claim — if belief has a sufficient natural cause, it stops being evidence of anything.",
     keep: "The wish-fulfilment story fits the doctrine badly and parts of religious practice very well. Say the second half yourself.",
@@ -436,6 +525,11 @@ export const ENCOUNTERS = [
         lands: "“That's what people say when the answer is embarrassing.” She's heard it before, from people with nothing behind it.",
         why: "Context is the right answer and 'read it in context' is not an argument, it's a promissory note. Give the actual verses or don't invoke it." },
     ],
+    beats: [
+      { label: "Concede", say: "It was used to defend chattel slavery for centuries by people who knew the text well. That's just true." },
+      { label: "Turn", say: "And Exodus 21:16 makes kidnapping a person a capital crime — the actual mechanism of the trade. Deuteronomy 23 forbids returning a runaway." },
+      { label: "Limit", say: "The foreign-slave provisions are harder and the trajectory argument doesn't fully cover them." },
+    ],
     tool: "Exodus 21:16 makes kidnapping a person a capital crime — the exact mechanism of the transatlantic trade. Deuteronomy 23:15 forbids returning a runaway, the reverse of every slave code in history. Philemon dismantles the category in practice, Galatians 3:28 in principle. The foreign-slave provisions remain harder, and the trajectory argument does not fully cover them.",
     keep: "Name the part that still hurts yourself. If you don't, they'll assume you didn't know about it.",
   },
@@ -457,6 +551,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "“The children were wicked?” She isn't being difficult. That's just where the sentence goes.",
         why: "The judgement framing is in the text and offered alone it sounds like a justification for killing children, which is what she's asking about." },
+    ],
+    beats: [
+      { label: "Concede", say: "It's the hardest thing in the Bible and I don't find it easy." },
+      { label: "Turn", say: "Ancient war rhetoric used total-destruction language hyperbolically — Joshua says the destruction was complete and then lists survivors." },
+      { label: "Limit", say: "Even granting all of it, the commands as given are appalling to a modern reader. They should be." },
     ],
     tool: "Three lines, none of which fully suffices: hyperbolic ANE war rhetoric, judgement on specific practices over four hundred years rather than ethnicity, and Deuteronomy 9 explicitly denying that Israel deserved the land. Even with all three granted, the commands as given remain appalling to a modern reader — and they should.",
     keep: "Don't close this conversation with an answer. Close it with the honest difficulty.",
@@ -480,6 +579,11 @@ export const ENCOUNTERS = [
         lands: "“Right, but that's the thing you're trying to prove.” He's spotted the circle without needing the vocabulary.",
         why: "Begging the question, and the person you're talking to doesn't share the premise that's doing the work." },
     ],
+    beats: [
+      { label: "Correct the image", say: "Modern Bibles go straight from Greek and Hebrew manuscripts — there's no chain of translations." },
+      { label: "Turn", say: "And the copies branch like a tree, which lets errors be located instead of accumulating. Around 5,800 Greek manuscripts." },
+      { label: "Limit", say: "Two real later additions exist — the long ending of Mark and the woman caught in adultery. Both are footnoted in your Bible." },
+    ],
     tool: "Four things are wrong with the telephone image: translation is from the originals, not serially; the copies form a branching tree that lets errors be located rather than accumulated; the earliest fragments are within a century or two; and the variants are catalogued in public. Name the two real later additions yourself — Mark's longer ending and the woman caught in adultery.",
     keep: "Volunteer the strongest counterexample to your own claim. It's what makes the rest of the claim believable.",
   },
@@ -501,6 +605,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "She repeats it at school. It goes badly. She stops asking you science questions.",
         why: "Teaching a child to distrust her teacher on a question with a good answer costs you the next ten years of her questions." },
+    ],
+    beats: [
+      { label: "Reframe", say: "The question is what the text is claiming — how the world was built, or what it's for." },
+      { label: "Turn", say: "Augustine warned Christians not to read Genesis as science. Fifth century, long before there was any pressure to." },
+      { label: "Limit", say: "The functional reading is contested, and 'it isn't claiming what it looks like' is exactly the move that looks like retreat." },
     ],
     tool: "The question is what claim the text is making. Walton argues Genesis 1 is an account of functional origins in a cosmic-temple framework — what things are FOR, not what they're made of. Augustine warned against reading it as physics in the fifth century. This reading is contested, and 'the text isn't claiming what it seems to claim' is exactly the move that looks like retreat — which is why Augustine's date matters.",
     keep: "The Bible is written for us, but it is not written to us.",
@@ -526,6 +635,11 @@ export const ENCOUNTERS = [
         lands: "“Legends can form in weeks. I can give you three from the last decade.” He can.",
         why: "The 'no time for legend' line is weaker than it sounds and he'll know it. The creed's early date does the work; the generalisation doesn't." },
     ],
+    beats: [
+      { label: "Concede", say: "The trajectory in the gospels is real. Mark's short, John's long." },
+      { label: "Turn", say: "But 1 Corinthians 15 is dated within a few years and already has death, burial, resurrection and named appearances." },
+      { label: "Limit", say: "That date is an inference from the formula, not a manuscript. And the gospel development still needs an account." },
+    ],
     tool: "The developmental pattern in the gospels is real and needs an account. What it runs into is 1 Corinthians 15:3-7, widely dated within a few years of the crucifixion, already containing death, burial, resurrection and named appearances. The core is earlier than the documents that supposedly grew it — though that dating is an inference from formulaic structure, not a manuscript.",
     keep: "'Received… delivered' is technical language for passing on a fixed formula. That's why the date is early.",
   },
@@ -547,6 +661,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“That's too strong, and I'd want to define terms.” You've made an absolute claim to the one person in the room qualified to test it.",
         why: "'Doesn't happen in the way this objection needs' is defensible. 'Impossible' is not, and she'll spend the rest of the conversation on it." },
+    ],
+    beats: [
+      { label: "Grant the phenomenon", say: "Grief hallucinations are common and well documented — I'm not disputing that." },
+      { label: "Turn", say: "They're individual though. The reports include groups, and Paul was hostile, not grieving." },
+      { label: "Limit", say: "The appearances have better scholarly support than the empty tomb. Celsus raised this in the second century and it isn't stupid." },
     ],
     tool: "Grief hallucinations are individual and idiosyncratic; the reports include groups. It doesn't explain the empty tomb, or Paul, who was hostile, or James, who was sceptical. And first-century Judaism had no category for one man rising in the middle of history. Celsus raised this in the second century — it is the oldest naturalistic explanation there is, and it is not stupid.",
     keep: "Concede that the appearances have better scholarly support than the empty tomb. It's true, and it makes the rest credible.",
@@ -570,6 +689,11 @@ export const ENCOUNTERS = [
         lands: "“Then why have we spent two hours on manuscripts?” Fair question, and you don't have a good reply.",
         why: "It may even be psychologically true. Saying it retroactively converts every historical argument you made into decoration." },
     ],
+    beats: [
+      { label: "Answer straight", say: "A body. A demonstrable fabrication. An early source describing the movement's origin differently." },
+      { label: "Turn", say: "Paul says the same thing — if Christ isn't raised, the whole thing is worthless." },
+      { label: "Limit", say: "In practice I probably wouldn't abandon it on evidence I can currently imagine. That's true of you too, and it's worth both of us admitting." },
+    ],
     tool: "Paul makes the claim falsifiable in principle. In practice most believers — including you — would not abandon faith on any evidence they can currently imagine, and admitting that is more honest than pretending to a detachment nobody has. The same is true of the committed atheist. Notice that, then answer for yourself anyway.",
     keep: "Answer in your own words first. Citing a verse instead of a self is heard as a dodge, and usually is one.",
   },
@@ -591,6 +715,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "Two minutes of searching produces some real ones, and now every accurate thing you said is suspect.",
         why: "There ARE real parallels — the Hellenistic world had categories for divine men and apotheosis, and the calendar absorbed local material later. Overclaiming here loses the specific point you had." },
+    ],
+    beats: [
+      { label: "Ask for the source", say: "Where's that list from? When I chased it, it traced to a couple of nineteenth-century writers." },
+      { label: "Turn", say: "Mithras was born from a rock. Osiris was reassembled in the underworld. That isn't resurrection into life." },
+      { label: "Limit", say: "There ARE real parallels — the Hellenistic world had categories for divine men, and the calendar absorbed local material later." },
     ],
     tool: "The specific parallels are largely late, secondhand or invented, and the tidy lists trace to Kersey Graves and Gerald Massey rather than to primary sources. What fails is the derivation, not the general observation that no religion arises in a vacuum. And the claim is structurally different: Jewish resurrection was bodily and end-of-history, not a seasonal cycle.",
     keep: "Ask where the list came from. That question does more work than any rebuttal.",
@@ -616,6 +745,11 @@ export const ENCOUNTERS = [
         lands: "“I know. My grandmother was one. That's not what I said.” You've argued with a claim he didn't make.",
         why: "He said 'not better on average', not 'all bad'. Answering the version you're comfortable with is exactly what he expected." },
     ],
+    beats: [
+      { label: "Concede", say: "Yeah. And that's not a surprise to the doctrine — the whole claim is that everyone's broken." },
+      { label: "Turn", say: "Jesus saved his sharpest words for religious people, which is at least the right target." },
+      { label: "Limit", say: "That's an explanation, not an excuse. And it's usually one specific person, not a statistic." },
+    ],
     tool: "Concede it, and don't put the qualification in the same sentence. The doctrine predicts it — Jesus reserved his sharpest words for religious people. And notice this is usually about one specific person who hurt him, not about a statistic.",
     keep: "Chesterton: the Christian ideal has not been tried and found wanting; it has been found difficult and left untried.",
   },
@@ -637,6 +771,11 @@ export const ENCOUNTERS = [
         tone: "cost",
         lands: "“And yet.” Two words, and she's right.",
         why: "True, and offered too early it functions as a defence. It's the sort of thing that can only be said after a long silence, if at all." },
+    ],
+    beats: [
+      { label: "Agree", say: "Yes." },
+      { label: "Say nothing else", say: "(No 'but'. No context. No statistics about other institutions.)" },
+      { label: "Only if asked", say: "The church's own texts condemn exactly that — judgement beginning with the household of God." },
     ],
     tool: "Agree, without a 'but'. If anything follows it is that judgement beginning with the household of God is a claim Christians made about themselves first — and the impulse to add context is the impulse to defend it.",
     keep: "This is the objection where being right about anything is worth the least.",
@@ -660,6 +799,11 @@ export const ENCOUNTERS = [
         lands: "He's quiet. Then: “yeah, my mistake.” And that's the last time.",
         why: "You won the exchange and confirmed the accusation in one sentence." },
     ],
+    beats: [
+      { label: "Concede", say: "That's fair." },
+      { label: "Turn", say: "What do you actually think? Not the argument — what do you think." },
+      { label: "Limit", say: "And be willing for it to end there, without you saying the thing you were about to say." },
+    ],
     tool: "If this is said to you, it is true. Stop, agree, ask what they actually think, and mean it — and be willing for the conversation to end without you having said the thing you were about to say. This is the failure mode a course like this makes MORE likely, not less.",
     keep: "The measure of whether this is working isn't how often you win. It's whether the people who disagree still bring you their hard questions.",
   },
@@ -681,6 +825,11 @@ export const ENCOUNTERS = [
         tone: "slip",
         lands: "“That's a definition, not an answer.” She's exactly right, and she'd worked that out before she asked you.",
         why: "It's true and unfalsifiable and it tells her nothing. She came with a real question and got a tautology." },
+    ],
+    beats: [
+      { label: "Admit the disagreement", say: "Christians don't agree on this and Scripture isn't explicit." },
+      { label: "Turn", say: "The positions are: judgement by the light available, inclusivism, and Molinist placement. Here's which I lean to." },
+      { label: "Limit", say: "None of them is stated clearly in the text. The honest summary is that we don't know." },
     ],
     tool: "Positions within orthodoxy: judgement according to the light available (Romans 2), inclusivism, and Molinist accounts on which God places people knowing what they'd freely do. None is stated clearly in the text, all are contested, and the honest summary is that Christians do not know.",
     keep: "An uncomfortable 'we don't know' beats a confident answer you cannot support. People can tell the difference.",
