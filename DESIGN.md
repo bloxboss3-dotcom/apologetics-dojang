@@ -598,3 +598,59 @@ is precisely what this layer exists to stop.
 
 The home screen now carries two counters: **questions you can answer**, and
 **ideas you understand**.
+
+---
+
+## 14. Build on the one thing that worked
+
+Sixth report, and the first one that isolated a working part:
+
+> "the hot stove and the £20 was probably the only thing that I actually
+> learned from. Base it more on this — if you need to change structures please
+> do so, because that little part was the most helpful thing."
+
+The hot stove and the borrowed twenty are the two analogies in the first mental
+model. Six builds of mechanism-hunting, and the one screen that taught anything
+was the one that *explained an idea by comparing two pictures of it*.
+
+So that is the app now.
+
+### What changed
+
+**17 models → 35.** Covering the load-bearing ideas across all seven sections:
+who owes an argument, claims that eat themselves, outside-time-not-merely-old,
+why every Trinity analogy fails, what an argument actually delivers, a cable not
+a chain, defence vs theodicy, permitting vs causing, a question or a wound,
+regulating isn't endorsing, recognised not conferred, details nobody would
+invent, the tomb and the appearances, winning vs persuading.
+
+**Models were ungated.** The old flow was: one model, then an eight-minute
+answer drill, then the next model. That was throttling the only part of the app
+anybody ever said taught them something. Models now run back to back for as
+long as you want, and the conversation drill is an option below rather than a
+toll gate.
+
+**The ideas library.** All 35, grouped by section, openable in any order, with
+the confusion each one dissolves shown on the row. You cannot want to
+understand a thing you have never heard of, and choosing the one you care about
+today is most of what autonomy means in a study app. Going back through a model
+you have done is explicitly encouraged — the transfer cases only work when you
+meet them cold.
+
+**Home is now ideas-first.** The counter at the top is *ideas you understand*.
+The card count and the conversation drill moved down.
+
+### The format that worked, unchanged
+
+| | |
+|---|---|
+| **1 · The confusion** | what people actually get wrong, in their words |
+| **2 · Picture one** | a scene from ordinary life, then the mapping as a table |
+| **3 · Picture two** | different domain, same skeleton |
+| **4 · What's shared** | you answer first, then it shows you |
+| **5 · Where it breaks** | the disanalogy, always |
+| **6 · Does it apply?** | three unseen cases, some of which only *look* similar |
+
+Two analogies, never one, because that is where the effect is: comparing two
+analogous cases beats studying the same two separately by roughly 3× on
+transfer. One analogy is remembered as a story. Two, compared, become a schema.
