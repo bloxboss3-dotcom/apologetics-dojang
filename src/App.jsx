@@ -312,6 +312,15 @@ const CSS = `
    its centre of gravity is the comparison between two analogies rather than
    either analogy on its own. */
 .dj .mdlcard { border-left-color:#8FA8C4; }
+.dj .idearow { display:flex; align-items:flex-start; gap:10px; width:100%; text-align:left;
+  padding:13px 14px; border-radius:14px; background:var(--panel); border:1px solid var(--line);
+  color:var(--paper); cursor:pointer; transition:border-color .13s; }
+.dj .idearow:hover { border-color:#8FA8C4; }
+.dj .idearow.done { border-color:#2A4A38; }
+.dj .ideatick { flex:none; width:14px; color:var(--good); font-size:13px; line-height:1.5; }
+.dj .ideaname { display:block; font-size:15px; font-weight:600; }
+.dj .ideahint { display:block; font-size:12.5px; color:var(--muted); margin-top:4px; line-height:1.45; }
+
 .dj .hook { font-family:Fraunces,Georgia,serif; font-size:clamp(18px,4.8vw,21px);
   line-height:1.5; margin-top:14px; }
 
@@ -621,20 +630,27 @@ export const answersHeld = (prog) => (prog.answers || []).length;
    attached and you have not worked through it, that is what you get first —
    because the answer drill teaches you to say three beats, and the model is
    what lets you generate them against an objection nobody scripted. */
+/* The next idea you have not worked through.
+
+   This used to be gated: one model, then an eight-minute answer drill, then
+   the next model. The one report that ever isolated a working part of this app
+   named the model screen — the hot stove and the borrowed twenty — so the
+   gating was throttling the only thing that landed. Models now run back to
+   back for as long as you want them, and the conversation drill is an option
+   afterwards rather than a toll gate.
+
+   Order still prefers the idea behind the next question, so that when you do
+   go and use one, you have just met it. */
 export const modelDue = (prog, enc) => {
   const done = new Set(prog.models || []);
-  /* The model behind the question you are ABOUT to be asked, and only that
-     one. Understanding an idea and then immediately using it in a real
-     conversation is the pairing that makes either half work — running all
-     seventeen models back to back and the questions afterwards would separate
-     them again, which is the thing this layer exists to stop.
-     Standalone models only surface once the questions have run out. */
-  if (enc) {
-    if (!enc.model || done.has(enc.model)) return null;
-    return MODELS.find((x) => x.id === enc.model) || null;
+  if (enc && enc.model && !done.has(enc.model)) {
+    const m = MODELS.find((x) => x.id === enc.model);
+    if (m) return m;
   }
   return MODELS.find((m) => !done.has(m.id)) || null;
 };
+export const modelsHeldIn = (prog, sec) =>
+  MODELS.filter((m) => m.sec === sec && (prog.models || []).includes(m.id)).length;
 
 /* Truncate on a word, never mid-word. "You k…" reads as a rendering bug rather
    than as an excerpt. */
@@ -1025,6 +1041,7 @@ export default function App() {
   const [ready, setReady] = useState(false);
   const [active, setActive] = useState(null);
   const [screen, setScreen] = useState("home");
+  const [pickedModel, setPickedModel] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -1096,6 +1113,7 @@ export default function App() {
       xp: prog.xp + gain, coins: prog.coins + 10,
       streak, last: today(),
     });
+    setPickedModel(null);
     setScreen("home");
     if (after.name !== before.name) setBeltUp(after);
   };
@@ -1198,9 +1216,12 @@ export default function App() {
         <Shop prog={prog} belt={belt} buy={buy} back={() => setScreen("lessons")} />
       ) : screen === "study" ? (
         <Study prog={prog} bank={bank} back={() => setScreen("home")} />
-      ) : screen === "model" && modelDue(prog, nextEncounter(prog)) ? (
-        <Model model={modelDue(prog, nextEncounter(prog))} prog={prog}
-          back={() => setScreen("home")} onDone={takeModel} />
+      ) : screen === "model" && (pickedModel || modelDue(prog, nextEncounter(prog))) ? (
+        <Model model={pickedModel || modelDue(prog, nextEncounter(prog))} prog={prog}
+          back={() => { setPickedModel(null); setScreen("home"); }} onDone={takeModel} />
+      ) : screen === "ideas" ? (
+        <Ideas prog={prog} back={() => setScreen("home")}
+          open={(m) => { setPickedModel(m); setScreen("model"); }} />
       ) : screen === "answer" && nextEncounter(prog) ? (
         <Answer enc={nextEncounter(prog)} prog={prog} back={() => setScreen("home")}
           onDone={takeEncounter} />
@@ -1538,8 +1559,8 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
   const count = today.items.length;
   const enc = nextEncounter(prog);
   const mdl = modelDue(prog, enc);
-  const held = answersHeld(prog);
   const modelsHeld = (prog.models || []).length;
+  const held = answersHeld(prog);
   const decks = sectionStats(prog);
   const pace = paceOf(prog);
   const met = decks.reduce((a, d) => a + d.met, 0);
@@ -1555,61 +1576,53 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
         <button className="icon-btn" onClick={toggleSound}>{prog.sound ? "♪" : "✕♪"}</button>
       </div>
 
-      {/* ── the only number that means anything ──
-          Four rebuilds went by before it was obvious: the app had no unit that
-          ever FINISHED. Cards, scenes, combos — all of it was a sip from an
-          ocean of 1,290 items with no bottom and no arrival. Hangul works partly
-          because twenty-four letters is a closed set you can finish, after which
-          you can READ. This is that number: not how much you have studied, but
-          how many questions you can now answer out loud. */}
+      {/* ── ideas first ──
+          Six reports in, exactly one named a part of this app that taught
+          anything: the screen with the hot stove and the borrowed twenty. So
+          that is the app now. The number at the top is ideas understood, the
+          card under it is the next idea, and everything that used to sit here
+          — the card count, the conversation drill — moved down. */}
       <div className="heldcard">
-        <div className="eyebrow">Questions you can answer</div>
-        <div className="heldnum">{held} <span className="heldof">of {ENCOUNTER_COUNT}</span></div>
-        <div className="eyebrow" style={{ marginTop: 10, color: "#8FA8C4" }}>
-          Ideas you understand · {modelsHeld} of {MODEL_COUNT}
-        </div>
-        {held > 0 && (
-          <div className="heldlist">
-            {(prog.answers || []).slice(-4).reverse().map((id) => {
-              const e = ENCOUNTERS.find((x) => x.id === id);
-              return e ? <div key={id} className="heldrow">✓ {answerName(e)}</div> : null;
-            })}
-            {held > 4 && <div className="heldrow more">+ {held - 4} more</div>}
-          </div>
-        )}
+        <div className="eyebrow">Ideas you understand</div>
+        <div className="heldnum">{modelsHeld} <span className="heldof">of {MODEL_COUNT}</span></div>
+        <p className="muted" style={{ marginTop: 10 }}>
+          Each one is two analogies from ordinary life, what they have in common,
+          and where they break. About five minutes.
+        </p>
+        <button className="use" style={{ marginTop: 12 }} onClick={() => go("ideas")}>
+          All {MODEL_COUNT} ideas →
+        </button>
       </div>
 
-      {/* Understanding first. If the next question has a mental model you have
-          not worked through, that is what is offered — the answer drill teaches
-          three beats, and the model is what lets you generate them against an
-          objection nobody scripted. */}
       {mdl ? (
         <button className="enccard mdlcard" onClick={() => go("model")}>
           <div className="eyebrow" style={{ color: "#8FA8C4" }}>
-            Understand it first · two analogies · about 5 minutes
+            {modelsHeld === 0 ? "Start here" : "Next idea"} · two analogies · about 5 minutes
           </div>
           <p className="said" style={{ fontSize: 19, marginTop: 8 }}>{mdl.name}</p>
-          <div className="eyebrow" style={{ marginTop: 10 }}>
-            {clipWords(mdl.confusion, 92)} →
-          </div>
-        </button>
-      ) : enc ? (
-        <button className="enccard" onClick={() => go("answer")}>
-          <div className="eyebrow" style={{ color: "var(--gold)" }}>
-            {held === 0 ? "Start here" : "Next one"} · about 8 minutes
-          </div>
-          <p className="said" style={{ fontSize: 17, marginTop: 8 }}>“{clipWords(enc.says, 116)}”</p>
-          <div className="eyebrow" style={{ marginTop: 10 }}>
-            {enc.where} · you'll be able to answer this →
-          </div>
+          <div className="eyebrow" style={{ marginTop: 10 }}>{clipWords(mdl.confusion, 92)} →</div>
         </button>
       ) : (
         <div className="enccard" style={{ cursor: "default" }}>
-          <div className="eyebrow">All {ENCOUNTER_COUNT} answered</div>
+          <div className="eyebrow">All {MODEL_COUNT} ideas worked through</div>
           <p className="muted" style={{ marginTop: 7 }}>
-            Every one is in your deck now, and comes back whole rather than in pieces.
+            Go back through any of them from the list — the transfer cases are
+            different every time you meet them cold.
           </p>
         </div>
+      )}
+
+      {/* Using one in a conversation. An option now, not a toll gate: gating
+          the ideas behind an eight-minute drill was throttling the only part of
+          this app anybody ever said taught them something. */}
+      {enc && (
+        <button className="enccard" style={{ marginTop: 12 }} onClick={() => go("answer")}>
+          <div className="eyebrow" style={{ color: "var(--gold)" }}>
+            Use one · {held} of {ENCOUNTER_COUNT} questions answered
+          </div>
+          <p className="said" style={{ fontSize: 16, marginTop: 8 }}>“{clipWords(enc.says, 100)}”</p>
+          <div className="eyebrow" style={{ marginTop: 10 }}>{enc.where} →</div>
+        </button>
       )}
 
       {/* The one thing on this screen that matters. Everything above it is
@@ -1753,6 +1766,62 @@ function Home({ prog, belt, go, toggleSound, reset, saveState, restore, setPace,
         <InstallCard />
         <JudgePanel />
       </div>}
+    </div>
+  );
+}
+
+/* ═══════════════════ THE IDEAS ═══════════════════
+
+   Every model, grouped by section, openable in any order. A list you can scroll
+   is worth more than a queue you can't see past: you cannot want to understand
+   a thing you have never heard of, and picking the one you actually care about
+   today is most of what autonomy means in a study app.
+*/
+
+function Ideas({ prog, back, open }) {
+  const done = new Set(prog.models || []);
+  return (
+    <div className="wrap fade" style={{ paddingTop: 26 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <button className="icon-btn" onClick={back}>← home</button>
+        <span className="pill" style={{ marginLeft: "auto" }}>{done.size} / {MODEL_COUNT}</span>
+      </div>
+
+      <h1 style={{ fontSize: 27, marginTop: 16 }}>The ideas</h1>
+      <p className="muted" style={{ marginTop: 6 }}>
+        Two analogies each, what they share, and where they break. Take any one
+        in any order — and going back through one you've done is worth it, because
+        the transfer cases only work when you meet them cold.
+      </p>
+
+      {SECTIONS.map((sec) => {
+        const mine = MODELS.filter((m) => m.sec === sec.n);
+        if (!mine.length) return null;
+        return (
+          <div key={sec.id} style={{ marginTop: 26 }}>
+            <div className="sechead">
+              <span className="mono" style={{ fontSize: 11, color: sec.foe.hue, letterSpacing: ".14em" }}>
+                {String(sec.n).padStart(2, "0")}
+              </span>
+              <span className="bar" style={{ background: sec.foe.hue, opacity: .45 }} />
+              <span className="eyebrow">{mine.filter((m) => done.has(m.id)).length}/{mine.length}</span>
+            </div>
+            <h2 style={{ fontSize: 19 }}>{sec.title}</h2>
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 8 }}>
+              {mine.map((m) => (
+                <button key={m.id} className={"idearow" + (done.has(m.id) ? " done" : "")}
+                  onClick={() => open(m)}>
+                  <span className="ideatick">{done.has(m.id) ? "✓" : ""}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span className="ideaname">{m.name}</span>
+                    <span className="ideahint">{clipWords(m.confusion, 78)}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

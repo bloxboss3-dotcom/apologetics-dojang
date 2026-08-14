@@ -1,8 +1,8 @@
 # Apologetics Dojang
 
-An apologetics trainer built around two numbers: **ideas you understand**, and **questions you can answer out loud.**
+An apologetics trainer built around one thing: **understanding an idea by comparing two analogies for it.**
 
-A **Model** is one idea, taught through two analogies from different corners of ordinary life — with the mapping laid out explicitly, the question *"what do these two have in common?"* asked before the answer is shown, the place the analogy breaks stated plainly, and three unseen cases to test whether the shape transferred. Comparing two analogous cases beats studying them separately by roughly 3× on transfer, which is why there are always two.
+There are **35 ideas**. Each is taught through two analogies from different corners of ordinary life — with the mapping laid out explicitly, the question *"what do these two have in common?"* asked before the answer is shown, the place the analogy breaks stated plainly, and three unseen cases to test whether the shape transferred. Comparing two analogous cases beats studying them separately by roughly 3× on transfer, which is why there are always two.
 
 An **Answer** is one question somebody might actually ask you, start to finish in about eight minutes — you try it cold before you're taught anything, learn the move, build the reply in three beats (concede, turn, limit), then say the whole thing with no scaffold. Pass and it joins your list. At the end you see your first attempt beside your last one, in your own words.
 
@@ -64,7 +64,7 @@ src/
   juice.js           combos, particles, sound, commentary, ranks
   data/
     course.js        ← the curriculum: sections, units, teach screens, checks, bosses
-    models.js        17 ideas, two analogies each, with mappings and disanalogies
+    models.js        35 ideas, two analogies each, with mappings and disanalogies
     encounters.js    28 scenes — the line, three replies, what each one costs, the tool
     cards.js         the card model — three stages per item, and the first-letter scaffold
     corpus.js        types, and the flattening the deck is built from
